@@ -1,0 +1,17 @@
+﻿@inject AdminSenyun.Server.Services.PluginService PluginService
+<BootstrapBlazorRoot>
+    <ErrorLogger>
+        <CascadingAuthenticationState>
+            <Router AppAssembly="@typeof(Program).Assembly" AdditionalAssemblies="PluginService.AssembliesPages">
+                <Found Context="routeData">
+                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+                </Found>
+                <NotFound>
+                    <PageTitle>Not found</PageTitle>
+                    <LayoutView Layout="@typeof(NotFoundLayout)">
+                    </LayoutView>
+                </NotFound>
+            </Router>
+        </CascadingAuthenticationState>
+    </ErrorLogger>
+</BootstrapBlazorRoot>

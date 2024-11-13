@@ -1,0 +1,106 @@
+﻿@inherits AdminBase
+@page "/rep/lis"
+@using Mapster
+@using System.Diagnostics.CodeAnalysis
+
+<PageTitle>报表编辑工具</PageTitle>
+
+<AdminTable TItem="RepBase" ExtendButtonColumnWidth="280"
+            OnDeleteAsync="OnBaseDeleteAsync" @ref=repBaseRef>
+    <TableColumns>
+        <TableColumn @bind-Field=context.GroupName Searchable="true"></TableColumn>
+        <TableColumn @bind-Field=context.Name Searchable="true"></TableColumn>
+        <TableColumn @bind-Field=context.Description></TableColumn>
+        <TableColumn @bind-Field=context.CreateTime IsVisibleWhenAdd="false" IsVisibleWhenEdit="false"></TableColumn>
+    </TableColumns>
+    <DetailRowTemplate>
+        <Tab>
+            @foreach (var row in GetRepDatas(context))
+            {
+                <TabItem Text="@row.Key">
+                    <AdminTable TItem="RepData" Items="row.ToList()"
+                                ShowExtendEditButtonCallback="t=>false"
+                                OnDeleteAsync="OnDeleteAsync"
+                                ShowToolbar="false">
+                        <TableColumns Context="repdata">
+                            <TableColumn Width="150" @bind-Field=repdata.Name></TableColumn>
+                            <TableColumn  @bind-Field=repdata.Sql></TableColumn>
+                            <TableColumn Width="150" @bind-Field=repdata.CreateTime></TableColumn>
+                            <TableColumn Width="150" @bind-Field=repdata.UpdateTime></TableColumn>
+                            <TableColumn Width="100" @bind-Field=repdata.UpdateUserName></TableColumn>
+                        </TableColumns>
+                        <RowButtonTemplate Context="repContext">
+                            <TableCellButton Icon="fa-regular fa-pen-to-square" Text="修改" OnClick="()=>EditClick(repContext)"></TableCellButton>
+                        </RowButtonTemplate>
+                    </AdminTable>
+                </TabItem>
+            }
+        </Tab>
+    </DetailRowTemplate>
+    <RowButtonTemplate>
+        <TableCellButton Icon="fa-solid fa-plus" Text="增添" OnClick="()=>AddClick(context)"></TableCellButton>
+        <TableCellButton Icon="fa-solid fa-plus" Text="复制" OnClick="()=>CopyClick(context)"></TableCellButton>
+        <a class="btn btn-primary btn-xs" href="/rep/designer/@context.Id" target="_blank">
+            <i class="fas fa-pen"></i>
+            <span>设计</span>
+            @* <TableCellButton Icon="fas fa-pen" Text="设计"></TableCellButton> *@
+        </a>
+    </RowButtonTemplate>
+</AdminTable>
+
+
+@code {
+    [NotNull]
+    private AdminTable<RepBase>? repBaseRef { get; set; }
+
+    private IEnumerable<IGrouping<string, RepData>> GetRepDatas(RepBase repBase)
+    {
+        var repDatas = this.Db.Queryable<RepData>().Where(t => t.RepBaseId == repBase.Id).ToList();
+        return repDatas.GroupBy(t => t.DbName.ToUpper());
+    }
+
+    public async void AddClick(RepBase repBase)
+    {
+        var repData = new RepData() { RepBaseId = repBase.Id };
+        await ShowDialog<Rep.Components.RepDataEdit>(repData, "编辑表单数据源", Size.ExtraExtraLarge);
+    }
+
+    //复制新增一份
+    private async Task CopyClick(RepBase repBase)
+    {
+        var newrep = repBase.Adapt<RepBase>();
+        newrep.Id = 0;
+        newrep.Name += "_Copy";
+        var id = this.Db.Insertable(newrep).ExecuteReturnSnowflakeId();
+
+        var datas = this.Db.Queryable<RepData>()
+        .Where(t => t.RepBaseId == repBase.Id)
+        .ToList();
+        datas.ForEach(t => { t.RepBaseId = id; t.Id = 0; });
+
+        this.Db.Insertable(datas).ExecuteCommand();
+        repBaseRef.QueryAsync();
+    }
+
+    private async Task EditClick(RepData repData)
+    {
+        await ShowDialog<Rep.Components.RepDataEdit>(repData, "编辑表单数据源", Size.ExtraExtraLarge);
+    }
+
+    private async Task DesignerClick(RepBase repBase)
+    {
+        Navigation.NavigateTo("/rep/designer/" + repBase.Id, true);
+    }
+
+    private async Task<bool> OnDeleteAsync(IEnumerable<RepData> repDatas)
+    {
+        return this.Db.Deleteable(repDatas.ToList()).ExecuteCommand() > 0;
+    }
+
+    private async Task<bool> OnBaseDeleteAsync(IEnumerable<RepBase> repBases)
+    {
+        var ids = repBases.Select(t => t.Id).ToArray();
+        this.Db.Deleteable<RepData>().Where(t => ids.Contains(t.RepBaseId)).ExecuteCommand();
+        return this.Db.Deleteable(repBases.ToList()).ExecuteCommand() > 0;
+    }
+}

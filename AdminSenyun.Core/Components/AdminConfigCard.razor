@@ -1,0 +1,110 @@
+﻿@using AdminSenyun.Data.Core
+@using AdminSenyun.Models
+<Block Name="@AuthorizeKey" OnQueryCondition="OnQueryCondition">
+    <Card IsShadow="true">
+        <HeaderTemplate>
+            @HeaderText
+        </HeaderTemplate>
+        <BodyTemplate>
+            <ValidateForm OnValidSubmit="SaveClick" Model="Model">
+                <div class="row g-3 form-inline">
+                    <div class="col-12 col-sm-6">
+                        @if (ChildContent is null)
+                        {
+                            <BootstrapInput @bind-Value=Model.Value DisplayText="@(Title??"内容")"></BootstrapInput>
+                        }
+                        else
+                        {
+                            @ChildContent(Model)
+                        }
+                    </div>
+                    <Block Condition="IsShowSaveButton">
+                        <div class="col-12 col-sm-6 justify-content-end">
+                            <Button ButtonType="ButtonType.Submit" Icon="fa-solid fa-floppy-disk" Text="保存" />
+                        </div>
+                    </Block>
+                </div>
+            </ValidateForm>
+        </BodyTemplate>
+    </Card>
+</Block>
+
+@code {
+    /// <summary>
+    ///
+    /// </summary>
+    [Parameter]
+    public string? AuthorizeKey { get; set; }
+
+    /// <summary>
+    ///
+    /// </summary>
+    [Parameter]
+    [EditorRequired]
+    [NotNull]
+    public string? HeaderText { get; set; }
+
+    /// <summary>
+    /// 是否显示保存按钮
+    /// </summary>
+    [Parameter]
+    public bool IsShowSaveButton { get; set; } = true;
+
+
+    [Inject]
+    ISysSetting sysSetting { get; set; }
+
+    /// <summary>
+    /// 字段名称
+    /// </summary>
+    [Parameter]
+    [NotNull]
+    public string Name { get; set; }
+
+
+    /// <summary>
+    /// 设置中文名称
+    /// </summary>
+    [Parameter]
+    [NotNull]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// 数据模型
+    /// </summary>
+    public SysSetting Model { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Model = sysSetting.GetSetting(Name) ??
+        new SysSetting()
+            {
+                Name = Name,
+                Title = Title ?? Name,
+                Typ = SettingTyp.String,
+            };
+    }
+
+    async Task SaveClick(EditContext context) => await Task.Run(() => sysSetting.SetSetting(Model));
+
+
+    [Parameter]
+    public RenderFragment<SysSetting>? ChildContent { get; set; }
+
+
+
+    [Inject]
+    [NotNull]
+    private Data.Core.IAdmin? AdminService { get; set; }
+
+    [Inject]
+    [NotNull]
+    private NavigationManager? NavigationManager { get; set; }
+
+    private Task<bool> OnQueryCondition(string name)
+    {
+        var url = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        return Task.FromResult(AdminService.AuthorizingBlock(AdminService.UserName, url, name));
+    }
+}

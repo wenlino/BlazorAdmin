@@ -1,0 +1,16 @@
+﻿@page "/Admin/Groups"
+<SysAdminTable TItem="AdminSenyun.Models.SysGroup" ExtendButtonColumnWidth="270">
+    <TableToolbarTemplate>
+        <TableToolbarButton TItem="AdminSenyun.Models.SysGroup" IsEnableWhenSelectedOneRow="true" Color="Color.Warning" Icon="fa-solid fa-user" Text="分配用户" OnClickCallback="groups => OnAssignmentUsers(groups.First())" />
+        <TableToolbarButton TItem="AdminSenyun.Models.SysGroup" IsEnableWhenSelectedOneRow="true" Color="Color.Info" Icon="fa-solid fa-users-gear" Text="分配角色" OnClickCallback="groups => OnAssignmentRoles(groups.First())" />
+    </TableToolbarTemplate>
+    <TableColumns>
+        <TableColumn @bind-Field="@context.GroupName" Sortable="true" Filterable="true" Searchable="true" Width="180"></TableColumn>
+        <TableColumn @bind-Field="@context.GroupCode" Sortable="true" Filterable="true" Searchable="true" Width="180"></TableColumn>
+        <TableColumn @bind-Field="@context.Description" Sortable="true" Filterable="true"></TableColumn>
+    </TableColumns>
+    <RowButtonTemplate>
+        <TableCellButton Size="Size.ExtraSmall" Color="Color.Warning" Icon="fa-solid fa-user" Text="分配用户" OnClick="() => OnAssignmentUsers(context)" />
+        <TableCellButton Size="Size.ExtraSmall" Color="Color.Info" Icon="fa-solid fa-users-gear" Text="分配角色" OnClick="() => OnAssignmentRoles(context)" />
+    </RowButtonTemplate>
+</SysAdminTable>

@@ -1,0 +1,46 @@
+﻿@inherits AdminBase
+
+@using AdminSenyun.Models
+
+<Table TItem="SysFile" OnQueryAsync="OnQueryAsync">
+    <TableColumns>
+        <TableColumn @bind-Field=context.Name Searchable="true" Filterable="true">
+            <Template Context="value">
+                <a class="btn link-button link-primary" href="@value.Row.GetUrl()" target="_blank">
+                    @value.Row.GetFileName()
+                </a>
+            </Template>
+        </TableColumn>
+        <TableColumn @bind-Field=context.SizeKb IsVisibleWhenAdd="false" IsVisibleWhenEdit="false"></TableColumn>
+        <TableColumn @bind-Field=context.CreateTime IsVisibleWhenAdd="false" IsVisibleWhenEdit="false"></TableColumn>
+        <TableColumn @bind-Field=context.CreateUserName IsVisibleWhenAdd="false" IsVisibleWhenEdit="false"></TableColumn>
+    </TableColumns>
+</Table>
+
+@code {
+
+    [Parameter]
+    public List<long> Ids { get; set; }
+
+
+    private Task<QueryData<SysFile>> OnQueryAsync(QueryPageOptions option)
+    {
+        int count = 0;
+        var filter = option.ToFilter(); 
+        var items = this.Db.Queryable<SysFile>()
+                      .WhereIF(filter.HasFilters(), filter.GetFilterLambda<SysFile>())
+                      .OrderByIF(option.SortOrder != SortOrder.Unset, $"{option.SortName} {option.SortOrder}")
+                      .WhereIF(Ids != null,t=>Ids.Contains(t.Id))
+                      .ToPageList(option.PageIndex, option.PageItems, ref count);
+        var data = new QueryData<SysFile>
+            {
+                IsSorted = option.SortOrder != SortOrder.Unset,
+                IsFiltered = option.Filters.Any(),
+                IsAdvanceSearch = option.AdvanceSearches.Any(),
+                IsSearch = option.Searches.Any() || option.CustomerSearches.Any(),
+                Items = items,
+                TotalCount = Convert.ToInt32(count)
+            };
+        return Task.FromResult(data);
+    }
+}

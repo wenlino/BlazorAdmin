@@ -1,0 +1,145 @@
+﻿@page "/Account/Login"
+@layout AdminSenyun.Server.Account.Shared.LoginLayout
+
+@inject AjaxService AjaxService
+@inject IUser UserService
+@inject IDict DictsService
+@inject WebClientService WebClientService
+
+<div class="wrap white d-flex justify-content-center align-items-center">
+    <div class="container">
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <h2 class="form-signin-heading">@Title</h2>
+            <div class="d-flex justify-content-center login-input-box">
+                <div class="logo-png"></div>
+                <div class="login-wrap">
+                    @if (!string.IsNullOrWhiteSpace(Message))
+                    {
+                        <div class="mt-3">
+                            <Alert Icon="fa-solid fa-circle-xmark" Color="Color.Danger">@Message</Alert>
+                        </div>
+                    }
+                    <div class="login-up">
+                        <BootstrapInputGroup>
+                            <BootstrapInputGroupIcon Icon="fa-solid fa-fw fa-user" />
+                            <InputText @bind-Value="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="请输入账号" />
+                        </BootstrapInputGroup>
+                        <BootstrapInputGroup class="mt-3">
+                            <BootstrapInputGroupIcon Icon="fa-solid fa-fw fa-lock" />
+                            <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="请输入密码" />
+                        </BootstrapInputGroup>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <Checkbox @bind-Value="Input.RememberMe" Color="Color.Primary" ShowAfterLabel="true" DisplayText="记住密码自动登录" />
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-login btn-lg btn-block mt-3">登 录</button>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<div class="bottom-info">
+    @if (Footer?.Contains("ICP") ?? false)
+    {
+        <a href="https://beian.miit.gov.cn" class="text">@Footer</a>
+    }
+    else
+    {
+        @Footer
+    }
+</div>
+
+@code {
+
+    private string? Title { get; set; }
+
+    private string? Footer { get; set; }
+
+    private string Message { get; set; } = "";
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private ClientInfo clientInfo { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Title = DictsService.GetWebTitle();
+        Footer = DictsService.GetWebLoginFooter();
+
+#if DEBUG
+    if (string.IsNullOrWhiteSpace(Input.UserName) || string.IsNullOrWhiteSpace(Input.Password))
+    {
+    Input.UserName="admin";
+    Input.Password="123789";
+    }
+#endif
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            clientInfo = await WebClientService.GetClientInfo();
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        var option = new AjaxOption()
+            {
+                Url = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.LoginPath + "s",
+                Data = Input
+            };
+        var result = await AjaxService.InvokeAsync(option);
+
+        var code = result?.RootElement.GetProperty("code").GetInt32();
+        var message = result?.RootElement.GetProperty("message").GetString() ?? "";
+
+        await Log(Input.UserName, message);
+
+        if (code != 200)
+        {
+            Message = message;
+        }
+        else
+        {
+            await AjaxService.Goto("");
+        }
+    }
+
+    public async Task Log(string userName, string result)
+    {
+        var loginUser = new SysLoginLog()
+            {
+                UserName = userName,
+                LoginTime = DateTime.Now,
+                Ip = clientInfo.Ip,
+                City = clientInfo.City,
+                OS = clientInfo.OS,
+                Browser = clientInfo.Browser,
+                UserAgent = clientInfo.UserAgent,
+                Result = result
+            };
+        UserService.SaveLoginLog(loginUser);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string UserName { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; }
+    }
+}

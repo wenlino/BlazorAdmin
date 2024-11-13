@@ -1,0 +1,10 @@
+﻿@typeparam TItem
+
+<SelectTable TItem="TItem"
+             @bind-Value=search
+             GetTextCallback="GetTextCallback"
+             OnQueryAsync="OnQueryAsync"
+             OnValueChanged="OnValueChanged"
+             AutoGenerateColumns="AutoGenerateColumns"
+             DisplayText="@GetDisplayName()">
+</SelectTable>

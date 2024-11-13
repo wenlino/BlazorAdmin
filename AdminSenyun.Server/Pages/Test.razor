@@ -1,0 +1,89 @@
+﻿@page "/test"
+@inherits AdminSenyun.Core.Components.AdminBase
+@attribute [Authorize]
+@using AdminSenyun.Core.Attributes
+@using AdminSenyun.Core.Components
+
+@* <AdminSenyun.Core.Components.FieldInput @bind-Value="value"></AdminSenyun.Core.Components.FieldInput>
+
+<AdminSenyun.Core.Components.FieldInput @bind-Value="num"></AdminSenyun.Core.Components.FieldInput> *@
+
+
+@* <BootstrapInput DisplayText="测试" ShowLabel="true" @bind-Value=value></BootstrapInput> *@
+
+<Button Text="测试按钮" OnClick="Click"></Button>
+
+@* <AdminSysFileUpload SysFileChanged="SysFileChanged"></AdminSysFileUpload> *@
+@* <AdminSysFileUpload></AdminSysFileUpload> *@
+
+@* <AdminSenyun.Core.Components.AdminSysFile Items="fileids"></AdminSenyun.Core.Components.AdminSysFile> *@
+
+@*
+<CardUpload TValue="string"
+            IsMultiple=true
+            ShowDownloadButton="true"
+            OnChange="OnChange"
+            OnDelete="@(fileName => Task.FromResult(true))">
+</CardUpload> *@
+
+@* <UploadSysFile IsMultiple="true"></UploadSysFile> *@
+
+<WenSelect DictCategory="菜单" @bind-Value=vv></WenSelect>
+<Table TItem="sysDict" ShowToolbar="true" IsBordered="true" ShowExtendButtons="true">
+    <TableColumns>
+        <WenTableColumn @bind-Field=context.Name></WenTableColumn>
+        <WenTableColumn @bind-Field=context.Code></WenTableColumn>
+    </TableColumns>
+</Table>
+
+@code {
+    public class sysDict
+    {
+        [Key]
+        public long id { get; set; }
+        public string Name { get; set; }
+
+        [Dict("菜单")]
+        public string Code { get; set; }
+    }
+
+
+
+    [Description("测试标签")]
+    string value { get; set; } = "文本";
+
+    [Description("测试标签")]
+
+    int num { get; set; }
+
+    [Inject]
+    AuthenticationStateProvider authenticationStateProvider { get; set; }
+
+    List<long> fileids { get; set; } = [1847242601112145920, 1847242705181216768];
+
+    private string vv { get; set; }
+
+    async Task Click()
+    {
+        var item = cache.GetAll<SysFile>();
+        // var d = await this.ShowResultDialog("测试确认对话框");
+    }
+
+    private async Task SysFileChanged(SysFile sysFile)
+    {
+        System.Console.WriteLine("test1");
+        await Task.Delay(3000);
+        System.Console.WriteLine("test2");
+    }
+
+    private async Task OnChange(UploadFile uploadFile)
+    {
+        uploadFile.FileName = "11121312312";
+    }
+
+    [Inject]
+    ICache cache { get; set; }
+
+
+
+}

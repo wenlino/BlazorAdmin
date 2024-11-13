@@ -1,0 +1,172 @@
+﻿<RibbonTab Items="Items" OnItemClickAsync="OnItemClickAsync" RightButtonsTemplate="RightButtonsTemplate">
+</RibbonTab>
+
+
+
+@code {
+    [Inject]
+    [NotNull]
+    private INavigation? NavigationsService { get; set; }
+
+    [Inject]
+    [NotNull]
+    private AuthenticationStateProvider? AuthenticationStateProvider { get; set; }
+
+    [Inject]
+    [NotNull]
+    private IDict? DictsService { get; set; }
+
+    [Inject]
+    [NotNull]
+    private IAdmin? AdminService { get; set; }
+
+    [Inject]
+    [NotNull]
+    private NavigationManager? Navigator { get; set; }
+
+    private IEnumerable<RibbonTabItem> Items { get; set; }
+
+    [Parameter]
+    public Func<string, Task> OnMenuButtonClickAsync { get; set; }
+
+
+    [Parameter]
+    public RenderFragment? RightButtonsTemplate { get; set; }
+
+    private string? UserName { get; set; }
+
+    RibbonTabItem ribbonTabItemSelected = null;
+
+    private async Task OnItemClickAsync(RibbonTabItem ribbonTabItem)
+    {
+        if (ribbonTabItem != ribbonTabItemSelected)
+        {
+            if (ribbonTabItemSelected != null)
+                ribbonTabItemSelected.IsActive = false;
+            ribbonTabItemSelected = ribbonTabItem;
+            ribbonTabItem.IsActive = true;
+
+            if (ribbonTabItem.Url != null)
+                OnMenuButtonClickAsync?.Invoke(ribbonTabItem.Url);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        UserName = state.User.Identity?.Name;
+        Items = GetRibbonTabs();
+
+
+        SetRibbonItemActive();
+    }
+
+    /// <summary>
+    /// 设置激活标签
+    /// </summary>
+    private void SetRibbonItemActive()
+    {
+        var url = Navigator.ToBaseRelativePath(Navigator.Uri);
+        url = url.IndexOf('?') > 0 ? url[..url.IndexOf('?')] : url;
+        url = url.IndexOf('#') > 0 ? url[..url.IndexOf('#')] : url;
+
+        var urlString = string.Join("/", (url ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries));
+
+        foreach (var item in Items)
+        {
+            foreach (var ribbon in item.Items)
+            {
+                if (string.Join("/", ribbon.Url.Split('/', StringSplitOptions.RemoveEmptyEntries)) == url)
+                {
+                    item.IsActive = true;
+                    ribbon.IsActive = true;
+                    ribbonTabItemSelected = ribbon;
+                    return;
+                }
+            }
+        }
+    }
+
+
+    private List<RibbonTabItem> GetRibbonTabs()
+    {
+        var navigations = GetTreeNavigations(NavigationsService.GetAllMenus(UserName));
+
+        var items = new List<RibbonTabItem>();
+        foreach (var navigation in navigations)
+        {
+            var rt = new RibbonTabItem()
+                {
+                    Text = navigation.Name,
+                };
+
+            items.Add(rt);
+
+            foreach (var r in navigation.Child)
+            {
+                if (r.Child.Count > 0)
+                {
+                    foreach (var it in r.Child)
+                    {
+                        var url = it.Url?.Replace("~/", "/") ?? "";
+                        rt.Items.Add(new RibbonTabItem()
+                            {
+                                GroupName = r.Name,
+                                Text = it.Name,
+                                Icon = it.Icon,
+                                Url = url,
+                                Target = it.Target,
+                                Id = it.Id.ToString(),
+                                ParentId = it.ParentId.ToString(),
+                            });
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(r.Url))
+                {
+                    rt.Items.Add(new RibbonTabItem()
+                        {
+                            GroupName = "应用",
+                            Text = r.Name,
+                            Icon = r.Icon,
+                            Url = r.Url?.Replace("~/", "/"),
+                            Target = r.Target,
+                            Id = r.Id.ToString(),
+                            ParentId = r.ParentId.ToString(),
+                        });
+                }
+            }
+        }
+        return items;
+    }
+
+    private List<TreeNavigation> GetTreeNavigations(List<SysNavigation> items, string parentId = "0")
+    {
+        var ret = new List<TreeNavigation>();
+        ret.AddRange(items.Where(i => i.ParentId.ToString() == parentId && i.IsResource == 0)
+        .Select(t => new TreeNavigation()
+            {
+                Url = t.Url,
+                HasChildren = t.HasChildren,
+                Icon = t.Icon,
+                Id = t.Id,
+                IsResource = t.IsResource,
+                Name = t.Name,
+                Order = t.Order,
+                ParentId = t.ParentId,
+                Target = t.Target,
+                Child = GetTreeNavigations(items, t.Id.ToString())
+            }));
+        return ret;
+    }
+
+    public class TreeNavigation : SysNavigation
+    {
+        public List<TreeNavigation> Child { get; set; }
+    }
+}

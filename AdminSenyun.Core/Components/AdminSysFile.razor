@@ -1,0 +1,182 @@
+﻿@using AdminSenyun.Models
+@inherits AdminBase
+
+<AdminTable TItem="SysFile"
+            OnDeleteAsync="OnDeleteAsync"
+            ColumnPersistenceStoreName="SysFileAdmin" PageItems="PageItems"
+            OnQueryAsync="OnSysFileQueryAsync"
+            ShowEditButton="false" ShowAddButton="false"
+            @ref="adminTable"
+            ShowDeleteButton="ShowDeleteButton">
+    <TableColumns>
+        <TableColumn @bind-Field=context.Name Searchable="true" Filterable="true">
+            <Template Context="value">
+                <a class="btn link-button link-primary" href="@value.Row.GetUrl()" target="_blank">
+                    @value.Row.GetFileName()
+                </a>
+            </Template>
+        </TableColumn>
+        <TableColumn @bind-Field=context.Ext Searchable="true" Filterable="true"></TableColumn>
+        <TableColumn @bind-Field=context.SizeKb></TableColumn>
+        <TableColumn @bind-Field=context.CreateTime></TableColumn>
+        <TableColumn @bind-Field=context.CreateUserName></TableColumn>
+        <TableColumn FieldExpression="()=>context.Url"></TableColumn>
+    </TableColumns>
+    <TableToolbarTemplate>
+        @if (ShowUploadButton)
+        {
+            <TableToolbarButton Text="上传文件" Icon="fas fa-upload" OnClick="FileUploadClick"></TableToolbarButton>
+        }
+        <TableToolbarButton TItem="SysFile" Text="预览"
+                            Icon="fas fa-book-open-reader"
+                            IsEnableWhenSelectedOneRow="true"
+                            OnClickCallback="ViewFile">
+        </TableToolbarButton>
+        <TableToolbarButton TItem="SysFile" Text="下载"
+                            Icon="fas fa-download"
+                            IsEnableWhenSelectedOneRow="true"
+                            OnClickCallback="DowmloadFile">
+        </TableToolbarButton>
+    </TableToolbarTemplate>
+    <RowButtonTemplate>
+        <TableCellButton IsShow=@context.IsShow()
+                         Icon="fas fa-book-open-reader"
+                         Text="预览"
+                         OnClick="t=> OnViewFileClick(context)">
+        </TableCellButton>
+        <TableCellButton IsShow=@(!context.IsShow())
+                         Icon="fas fa-download"
+                         Text="下载"
+                         OnClick="t=> DownloadClick(context)">
+        </TableCellButton>
+    </RowButtonTemplate>
+</AdminTable>
+
+@code {
+    /// <summary>
+    /// 文件id数组
+    /// </summary>
+    private List<long> items { get; set; } = new List<long>();
+
+    /// <summary>
+    /// 获得/设置 默认每页数据数量 默认10
+    /// </summary>
+    [Parameter]
+    public int PageItems { get; set; } = 10;
+
+    /// <summary>
+    /// 文件上传成功事件
+    /// </summary>
+    [Parameter]
+    public Func<SysFile, Task>? OnFileUploadChanged { get; set; }
+
+    /// <summary>
+    /// 是否显示删除按钮
+    /// </summary>
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = true;
+
+    /// <summary>
+    /// 是否显示上传按钮
+    /// </summary>
+    [Parameter]
+    public bool ShowUploadButton { get; set; } = true;
+
+    /// <summary>
+    /// 获取数据查询事件
+    /// </summary>
+    [Parameter]
+    public Func<Task<List<long>>>? OnQueryAsync { get; set; }
+
+    /// <summary>
+    /// 删除文件事件
+    /// </summary>
+    [Parameter]
+    public Func<long, Task<bool>>? OnDelete { get; set; }
+
+
+    /// <summary>
+    /// 表实例
+    /// </summary>
+    [NotNull]
+    Core.Components.AdminTable<SysFile>? adminTable { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await QueryAsync();
+    }
+
+
+    /// <summary>
+    /// 执行查询事件
+    /// </summary>
+    /// <returns></returns>
+    public async Task QueryAsync()
+    {
+        if (OnQueryAsync != null)
+        {
+            items.Clear();
+            items.AddRange(await OnQueryAsync.Invoke());
+            if (adminTable != null)
+                await adminTable.QueryAsync();
+        }
+    }
+
+
+    private async Task<QueryData<SysFile>> OnSysFileQueryAsync(QueryPageOptions options)
+    {
+        if (items.Count == 0) return null;
+
+        return await QueryAsync<SysFile>(options,
+            x => x.Where(t => items.Contains(t.Id)).OrderByDescending(t => t.CreateTime)
+        );
+    }
+
+    async Task<bool> OnDeleteAsync(IEnumerable<SysFile> files)
+    {
+        try
+        {
+            foreach (var item in files)
+            {
+                var path = Path.Combine(this.GetSysFileRootPath(), item.Folder, item.GetSaveFileName());
+                if (File.Exists(path))
+                    File.Delete(path);
+                this.Db.Deleteable(item).ExecuteCommand();
+            }
+        }
+        catch { return false; }
+        return true;
+    }
+
+    async Task FileUploadClick()
+    {
+        await this.SysFileUpload(onDelete: OnDelete,
+            onSysFileChanged: async file => await OnFileUploadChanged.InvokeAwait(file),
+            close: async () => await QueryAsync()
+        );
+    }
+
+    async Task OnViewFileClick(SysFile file)
+    {
+        await ShowDialog(file.GetUrl());
+    }
+
+    async Task DownloadClick(SysFile file)
+    {
+        var path = Path.Combine(this.GetSysFileRootPath(), file.Folder, file.GetSaveFileName());
+        var bytes = File.ReadAllBytes(path);
+        await DownloadService.DownloadFromByteArrayAsync(file.GetFileName(), bytes);
+    }
+
+    private async Task ViewFile(IEnumerable<SysFile> sysFiles)
+    {
+        await OnViewFileClick(sysFiles.FirstOrDefault());
+    }
+
+    private async Task DowmloadFile(IEnumerable<SysFile> sysFiles)
+    {
+        await DownloadClick(sysFiles.FirstOrDefault());
+    }
+}

@@ -1,0 +1,31 @@
+﻿@page "/Admin/Logins"
+
+<SysAdminTable TItem="SysLoginLog" IsPagination="true" CustomerSearchModel="@TableSearchModel" SortString="LoginTime desc"
+               ShowDefaultButtons="false" ShowExtendButtons="false">
+    <TableColumns>
+        <TableColumn @bind-Field="@context.UserName" Filterable="true" Searchable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.LoginTime" Filterable="true" DefaultSort="true" Sortable="true" DefaultSortOrder="SortOrder.Desc"></TableColumn>
+        <TableColumn @bind-Field="@context.Ip" Filterable="true" Searchable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.City" Filterable="true" Searchable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Browser" Filterable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.OS" Filterable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Result" Filterable="true" Searchable="true">
+            <Template Context="v">
+                @if (v.Value == "登录成功")
+                {
+                    <Tag Color="Color.Success">@v.Value</Tag>
+                }
+                else
+                {
+                    <Tag Color="Color.Danger">@v.Value</Tag>
+                }
+            </Template>
+        </TableColumn>
+    </TableColumns>
+    <CustomerSearchTemplate Context="v">
+        @if (v is LoginLogModel m)
+        {
+            <LoginLogSearch @bind-Value="m"></LoginLogSearch>
+        }
+    </CustomerSearchTemplate>
+</SysAdminTable>

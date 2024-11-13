@@ -1,0 +1,21 @@
+﻿@page "/sys/ulsd"
+
+<WenTable TItem="SysUserLocalStorageData"
+          ColumnPersistenceStoreName="UserLocalStorageData">
+    <TableColumns>
+        <TableColumn @bind-Field=context.Id></TableColumn>
+        <TableColumn @bind-Field=context.TableName></TableColumn>
+        <TableColumn @bind-Field=context.UserName></TableColumn>
+        <TableColumn @bind-Field=context.Value>
+            <EditTemplate Context="v">
+                <div class="col-12">
+                    <Textarea @bind-Value=v.Value></Textarea>
+                </div>
+            </EditTemplate>
+        </TableColumn>
+    </TableColumns>
+</WenTable>
+
+@code {
+
+}

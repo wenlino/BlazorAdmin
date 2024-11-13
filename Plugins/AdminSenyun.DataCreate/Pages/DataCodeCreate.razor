@@ -1,0 +1,257 @@
+﻿@page "/dc/data-code"
+@using System.Reflection
+@using System.Text
+@using AdminSenyun.Models
+@inherits AdminBase
+
+<PageTitle>数据库代码生成器</PageTitle>
+
+<Split>
+    <FirstPaneTemplate>
+        <Table Items="OldItems" IsBordered="true" ShowToolbar="true"
+               IsFixedHeader="true"
+               ShowRefresh="false"
+               ShowEditButton="false"
+               ShowAddButton="false"
+               ShowDeleteButton="false">
+            <TableColumns>
+                <TableColumn @bind-Field=context.Name></TableColumn>
+                <TableColumn @bind-Field=context.Description></TableColumn>
+                <TableColumn @bind-Field=context.DbObjectType></TableColumn>
+            </TableColumns>
+            <TableToolbarTemplate>
+                <TableToolbarComponent>
+                    <div class="d-flex align-items-center">
+                        <div>开始表-></div>
+                        <Select TValue="string" Items="selectedItems" OnSelectedItemChanged="OldSelectedChanged"></Select>
+                        <Button Text="开始复制生成" OnClick="CreateSqliteDbFile"></Button>
+                    </div>
+                </TableToolbarComponent>
+            </TableToolbarTemplate>
+        </Table>
+    </FirstPaneTemplate>
+    <SecondPaneTemplate>
+        <Table Items="NewItems" IsBordered="true" ShowToolbar="true"
+               IsFixedHeader="true"
+               ShowRefresh="false"
+               ShowEditButton="false"
+               ShowAddButton="false"
+               ShowDeleteButton="false">
+            <TableColumns>
+                <TableColumn @bind-Field=context.Name></TableColumn>
+                <TableColumn @bind-Field=context.Description></TableColumn>
+                <TableColumn @bind-Field=context.DbObjectType></TableColumn>
+            </TableColumns>
+            <TableToolbarTemplate>
+                <TableToolbarComponent>
+                    <div class="d-flex align-items-center">
+                        <div>->新生成替换表</div>
+                        <Select TValue="string" Items="selectedItems" OnSelectedItemChanged="NewSelectedChanged"></Select>
+                    </div>
+                </TableToolbarComponent>
+            </TableToolbarTemplate>
+        </Table>
+    </SecondPaneTemplate>
+</Split>
+
+@code {
+
+    List<DbTableInfo> OldItems { get; set; } = [];
+    List<DbTableInfo> NewItems { get; set; } = [];
+
+    IEnumerable<SelectedItem> selectedItems { get; set; } = [];
+
+
+    private ISqlSugarClient? ndb;
+    private ISqlSugarClient? odb;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        List<SettingTyp> settingTyps = [SettingTyp.SqlServer, SettingTyp.Access, SettingTyp.Sqlite];
+
+        selectedItems = Db.Queryable<SysSetting>()
+        .Where(t => settingTyps.Contains(t.Typ))
+        .ToList()
+        .Select(t => new SelectedItem(t.Name, t.Name));
+    }
+
+
+    private async Task OldSelectedChanged(SelectedItem selectedItem)
+    {
+        odb = base.SysSetting.GetSqlSugarClient(selectedItem.Value);
+
+        OldItems = odb.DbMaintenance.GetTableInfoList();
+
+        this.StateHasChanged();
+    }
+
+
+    private async Task NewSelectedChanged(SelectedItem selectedItem)
+    {
+        ndb = base.SysSetting.GetSqlSugarClient(selectedItem.Value);
+
+        NewItems = ndb.DbMaintenance.GetTableInfoList();
+
+        this.StateHasChanged();
+    }
+
+
+    private async void CreateSqliteDbFile()
+    {
+        if (ndb is null || odb is null ||
+            ndb.CurrentConnectionConfig.ConnectionString == odb.CurrentConnectionConfig.ConnectionString)
+        {
+            await this.MsgError("两个表不允许选择一样。");
+            return;
+        }
+
+        ndb.DbMaintenance.CreateDatabase();
+
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        var types = assemblies.SelectMany(t => t.GetTypes());
+
+        var tables = odb.DbMaintenance.GetTableInfoList(false);
+
+        foreach (var table in tables)
+        {
+            if (types.FirstOrDefault(t => t.Name == table.Name) is Type type)
+            {
+                ndb.CodeFirst.InitTables(type);
+
+                var data = odb.QueryableByObject(type).ToList();
+
+                ndb.DeleteableByObject(data).ExecuteCommand();
+                ndb.InsertableByObject(data).ExecuteCommand();
+            }
+        }
+    }
+
+
+
+    private void SqlCodeCreate()
+    {
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+        var types = assemblies.SelectMany(t => t.GetTypes());
+
+        var tables = Db.DbMaintenance.GetTableInfoList(false);
+
+        List<string> usingCodes = new List<string>();
+        List<string> entityCodes = new List<string>();
+        foreach (var table in tables)
+        {
+            if (types.FirstOrDefault(t => t.Name == table.Name) is Type type)
+            {
+                usingCodes.Add(type.Namespace);
+
+
+                var data = Db.QueryableByObject(type).ToList();
+                var code = GenerateCode(data, type);
+
+                entityCodes.Add("{\r\n" + code + "\r\n}\r\n");
+
+
+            }
+        }
+
+        var usingString = string.Join("", usingCodes.Distinct().Select(t => $"using {t};\r\n"));
+
+        var insertString = string.Join("\r\n\t\t\t", entityCodes);
+
+        var allcode = $@"using SqlSugar;
+{usingString}
+namespace AdminSenyun.Data;
+
+public class AsyDataCode
+{{
+    private ISqlSugarClient db;
+    public AsyDataCode(ISqlSugarClient db)
+    {{
+        this.db=db;
+    }}
+
+    public void InsertData()
+    {{
+{insertString}
+    }}
+
+}}
+";
+        File.WriteAllText("1.cs", allcode);
+    }
+
+    public static string GenerateCode(object data, Type type)
+    {
+        if (data is System.Collections.IList listData)
+        {
+            // 使用反射获取T类的属性信息
+            var properties = type.GetProperties();
+
+            var codeBuilder = new StringBuilder();
+
+            // 创建 List<T> 初始化代码
+            codeBuilder.AppendLine($"var {type.Name}s = new List<{type.Name}>();");
+
+            // 遍历数据列表，生成每个对象添加的代码
+            foreach (var item in listData)
+            {
+                var propertyAssignments = new StringBuilder();
+                propertyAssignments.Append($"{type.Name}s.Add(new {type.Name}() {{ ");
+
+
+
+                foreach (var prop in properties)
+                {
+                    var propName = prop.Name;
+                    var propValue = prop.GetValue(item);
+                    string propCode = FormatPropertyValue(prop, propValue);
+
+                    // 拼接属性赋值
+                    propertyAssignments.Append($"{propName} = {propCode}, ");
+                }
+
+                // 删除最后一个多余的 ", "
+                propertyAssignments.Length -= 2;
+
+                // 添加到最终代码
+                propertyAssignments.Append(" });");
+                codeBuilder.AppendLine(propertyAssignments.ToString());
+            }
+            return codeBuilder.ToString();
+        }
+        return "";
+    }
+
+    private static string FormatPropertyValue(PropertyInfo prop, object value)
+    {
+        if (value == null)
+        {
+            return "null";
+        }
+
+        if (prop.PropertyType == typeof(string))
+        {
+            var text = value.ToString().Replace("\"", "\"\"");
+
+            return $"@\"{text}\""; // 字符串需要加引号
+        }
+        else if (prop.PropertyType == typeof(DateTime))
+        {
+            var dateTimeValue = (DateTime)value;
+            return $"new DateTime({dateTimeValue.Year}, {dateTimeValue.Month}, {dateTimeValue.Day})"; // 日期类型特殊处理
+        }
+        else if (prop.PropertyType == typeof(bool))
+        {
+            return value.ToString().ToLower(); // 布尔值转为小写
+        }
+
+        return value.ToString(); // 默认其他类型直接转换为字符串
+    }
+
+    private static string DbInsertCode(Type type)
+    {
+        return $"this.Db.Insertable({type.Name}s).ExecuteCommand();";
+    }
+}

@@ -1,0 +1,92 @@
+﻿@using AdminSenyun.Server.Models
+@using System.Reflection
+<Logout ImageUrl="@Icon" DisplayName="@Admin.DisplayName" UserName="@Admin.UserName">
+    <LinkTemplate>
+        <a href="/Admin/Profiles"><i class="fa-solid fa-suitcase"></i>个人中心</a>
+        <a @onclick=@(e=> IsOpen = true)><i class="fa-solid fa-cog"></i>设置</a>
+        <LogoutLink />
+    </LinkTemplate>
+</Logout>
+
+<Drawer Placement="Placement.Right" @bind-IsOpen="IsOpen" IsBackdrop="true">
+    <div class="layout-drawer-body">
+        <div class="btn btn-info w-100" @onclick="@(e => IsOpen = false)">点击关闭</div>
+        @foreach (var property in typeof(WebStyleSetting).GetProperties())
+        {
+            var text = property.GetCustomAttribute<DescriptionAttribute>()?.Description;
+            var value = property.GetValue(WebStyleSetting);
+
+            <GroupBox Title="@text">
+                @if (property.PropertyType == typeof(bool))
+                {
+                    <Toggle Value=@((value as bool?) ?? false)
+                            ValueChanged="e=>property.SetValue(WebStyleSetting,e)"
+                            OnText="开启" OffText="关闭"
+                            OnValueChanged="t=>SaveData()">
+                    </Toggle>
+                }
+                else if (property.PropertyType == typeof(string))
+                {
+                    <BootstrapInput TValue="string"
+                                    Value=value?.ToString()
+                                    OnValueChanged="t=>SaveData()"
+                                    ValueChanged="e=>property.SetValue(WebStyleSetting,e)">
+                    </BootstrapInput>
+                }
+            </GroupBox>
+        }
+    </div>
+</Drawer>
+
+@code {
+    [Inject][NotNull] private IAdmin? Admin { get; set; }
+    [Inject][NotNull] private IDict? DictsService { get; set; }
+
+    private bool IsOpen { get; set; }
+
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// 网站样式
+    /// </summary>
+    [Parameter]
+    public WebStyleSetting WebStyleSetting { get; set; }
+
+    [Parameter]
+    public Func<WebStyleSetting, Task>? OnWebStyleSettingChanged { get; set; }
+
+    [Inject, NotNull] private Blazored.LocalStorage.ILocalStorageService localStorage { get; set; }
+
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var userName = Admin.UserName;
+
+        if (!string.IsNullOrEmpty(userName))
+        {
+            var user = Admin.UsersService.GetUserByUserName(userName);
+            Icon = string.IsNullOrEmpty(user?.Icon) ? "/images/uploader/default.png" : GetIcon(user.Icon);
+        }
+    }
+
+    private string GetIcon(string icon)
+    {
+        return icon.Contains("://", StringComparison.OrdinalIgnoreCase)
+        ? icon
+        : string.Format("{0}{1}", DictsService.GetIconFolderPath(), icon);
+    }
+
+    private async Task SaveData()
+    {
+        await localStorage.SetItemAsync("WebStyleSetting", WebStyleSetting);
+        OnWebStyleSettingChanged?.Invoke(WebStyleSetting);
+    }
+
+    private void SettingButtonClick()
+    {
+        IsOpen = true;
+    }
+}

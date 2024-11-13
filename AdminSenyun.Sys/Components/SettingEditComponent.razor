@@ -1,0 +1,47 @@
+﻿@inherits AdminBase
+
+<ValidateForm Model="sysSetting">
+    @if (sysSetting.Typ == SettingTyp.String)
+    {
+        <BootstrapInput @bind-Value=sysSetting.Value type="@isPassword" />
+    }
+    else if (sysSetting.Typ == SettingTyp.Number)
+    {
+        <BootstrapInputNumber @bind-Value=sysSettingNumberValue type="@isPassword" />
+    }
+    else if (sysSetting.Typ == SettingTyp.Bool)
+    {
+        <Select Items="Items" @bind-Value=sysSetting.Value></Select>
+    }
+    else if (sysSetting.Typ == SettingTyp.Down)
+    {
+        <Select Items="GetSelectedItems()" @bind-Value=sysSetting.Value></Select>
+    }
+    else if (sysSetting.Typ == SettingTyp.SqlServer)
+    {
+        <BootstrapInput TValue="string" @bind-Value=serverTag.Server OnValueChanged="t=>ServerTagValueChange()" />
+        <BootstrapInput @bind-Value=serverTag.Database OnValueChanged="t=>ServerTagValueChange()" />
+        <BootstrapInput @bind-Value=serverTag.UserId OnValueChanged="t=>ServerTagValueChange()" />
+        <BootstrapInput @bind-Value=serverTag.Password OnValueChanged="t=>ServerTagValueChange()" type="@isPassword" />
+
+        <BootstrapInput @bind-Value=sysSetting.Value OnValueChanged="t=>SysSettingValueChange()" type="@isPassword" />
+    }
+    else if (sysSetting.Typ == SettingTyp.Access)
+    {
+        <BootstrapInput @bind-Value=Value OnValueChanged="t=>ServerAccessValueChange()" type="@isPassword" PlaceHolder="请输入服务器可访问的mdb文件地址" />
+
+        <BootstrapInput @bind-Value=sysSetting.Value IsDisabled="true" type="@isPassword" />
+    }
+    else if (sysSetting.Typ == SettingTyp.Sqlite)
+    {
+        <BootstrapInput @bind-Value=Value OnValueChanged="t=>ServerSqliteValueChange()" type="@isPassword" PlaceHolder="请输入服务器可访问的mdb文件地址" />
+
+        <BootstrapInput @bind-Value=sysSetting.Value IsDisabled="true" type="@isPassword" />
+    }
+    <Textarea @bind-Value=sysSetting.Remark />
+
+    <div class="form-footer mt-3">
+        <DialogCloseButton></DialogCloseButton>
+        <Button OnClick="EditSaveAsync" Icon="fa-solid fa-floppy-disk">保存</Button>
+    </div>
+</ValidateForm>

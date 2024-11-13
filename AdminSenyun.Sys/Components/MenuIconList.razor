@@ -1,0 +1,9 @@
+﻿<div>
+    <FAIconList @bind-Icon="Value" ShowCatalog="true" />
+    <div class="form-footer">
+        <span>选择图标</span>
+        <i class="@Value fa-fw icon"></i>
+        <DialogCloseButton />
+        <DialogCloseButton Color="Color.Primary" Icon="fa-solid fa-floppy-disk" Text="选择" OnClickWithoutRender="OnSelctedIcon" />
+    </div>
+</div>

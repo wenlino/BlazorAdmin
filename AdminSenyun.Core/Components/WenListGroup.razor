@@ -1,0 +1,156 @@
+﻿@typeparam TItem
+@inherits ValidateBase<TItem>
+
+<div @attributes="AdditionalAttributes" class="@ClassString">
+    <div class="d-flex justify-content-between align-items-center list-group-header-border">
+        @if (HeaderTemplate != null)
+        {
+            @HeaderTemplate
+        }
+        @if (!string.IsNullOrEmpty(HeaderText))
+        {
+            <div class="list-group-header-text">@HeaderText</div>
+        }
+        @if (IsShowRefreshButton)
+        {
+            <div class="list-group-header-button">
+                <Button Text="刷新"
+                        Icon="fa-solid fa-arrows-rotate"
+                        OnClick="QueryAsync"
+                        Color="Color.Secondary">
+                </Button>
+            </div>
+        }
+    </div>
+    <div class="list-group-body scroll">
+        @foreach (var item in Items)
+        {
+            <div @key="item" class="@GetItemClassString(item)" @onclick="() => OnClick(item)">
+                @if (ItemTemplate != null)
+                {
+                    @ItemTemplate(new ListItemContext(item, this.Value?.Equals(item) ?? false))
+                }
+                else
+                {
+                    @GetItemText(item)
+                }
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    /// <summary>
+    /// 获得/设置 数据源集合
+    /// </summary>
+    [Parameter]
+    // [NotNull]
+    // [EditorRequired]
+    public List<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Header 模板 默认 null
+    /// </summary>
+    [Parameter]
+    public RenderFragment? HeaderTemplate { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Header 文字 默认 null
+    /// </summary>
+    [Parameter]
+    public string? HeaderText { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Header 模板 默认 null
+    /// </summary>
+    [Parameter]
+    public RenderFragment<ListItemContext>? ItemTemplate { get; set; }
+
+    /// <summary>
+    /// 获得/设置 点击 List 项目回调方法
+    /// </summary>
+    [Parameter]
+    public Func<TItem, Task>? OnClickItem { get; set; }
+
+    /// <summary>
+    /// 获得/设置 获得条目显示文本内容回调方法
+    /// </summary>
+    [Parameter]
+    public Func<TItem, string>? GetItemDisplayText { get; set; }
+
+    /// <summary>
+    /// 查询数据事件
+    /// </summary>
+    [Parameter]
+    public Func<Task<List<TItem>>>? OnQueryAsync { get; set; }
+
+    /// <summary>
+    /// 是否显示刷新按钮
+    /// </summary>
+    [Parameter]
+    public bool IsShowRefreshButton { get; set; }
+
+    private string? ClassString => CssBuilder.Default("list-group")
+        .AddClassFromAttributes(AdditionalAttributes)
+        .Build();
+
+    private string? GetItemClassString(TItem item) => CssBuilder.Default("list-group-item")
+        .AddClass("active", Value != null && Value.Equals(item))
+        .Build();
+
+    /// <summary>
+    /// <inheritdoc/>
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        Items ??= [];
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        await QueryAsync();
+    }
+
+    public async Task QueryAsync()
+    {
+        if (OnQueryAsync != null)
+        {
+            this.Items = await OnQueryAsync();
+            this.StateHasChanged();
+        }
+    }
+
+    private string? GetItemText(TItem item) => GetItemDisplayText?.Invoke(item) ?? item?.ToString();
+
+    private async Task OnClick(TItem item)
+    {
+        if (OnClickItem != null)
+        {
+            await OnClickItem(item);
+        }
+        CurrentValue = item;
+    }
+
+    public class ListItemContext
+    {
+        public ListItemContext(TItem item, bool selected)
+        {
+            this.Item = item;
+            this.Selected = selected;
+        }
+
+        public TItem Item { get; private set; }
+        public bool Selected { get; private set; }
+    }
+
+    public async Task RemoveItem(TItem item)
+    {
+        Items.Remove(item);
+        this.StateHasChanged();
+    }
+}

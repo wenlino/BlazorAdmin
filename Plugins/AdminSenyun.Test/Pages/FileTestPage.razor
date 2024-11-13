@@ -1,0 +1,13 @@
+﻿@page "/test/file"
+
+<AdminSysFile OnQueryAsync="OnQueryAsync"></AdminSysFile>
+
+@code {
+    List<long> Items { get; set; } = [1847242601112145920, 1847242705181216768];
+
+
+    private async Task<List<long>> OnQueryAsync()
+    {
+        return Items;
+    }
+}

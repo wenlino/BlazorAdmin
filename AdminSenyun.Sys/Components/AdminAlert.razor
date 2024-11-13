@@ -1,0 +1,12 @@
+﻿<Block Condition="IsShow">
+    <Alert Icon="fa-solid fa-warning" Color="@Color">
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            @Text
+        }
+    </Alert>
+</Block>

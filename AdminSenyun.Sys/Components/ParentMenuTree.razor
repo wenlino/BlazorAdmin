@@ -1,0 +1,10 @@
+﻿<TreeView TItem="SysNavigation" Items="Items" ShowIcon="true" OnTreeItemClick="OnTreeItemClick" />
+
+@code {
+    RenderFragment<SysNavigation> RenderTreeItem => item =>
+    @<div class="d-flex flex-fill">
+        <span class="flex-fill">@item.Name</span>
+        <span class="mx-3">@item.Order</span>
+        <span class="app-type">@item.IsResource.ToDescriptionString()</span>
+    </div>;
+}

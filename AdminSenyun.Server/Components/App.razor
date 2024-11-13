@@ -1,0 +1,49 @@
+﻿@inject IHostEnvironment Env
+@inject IStringLocalizer<App> Localizer
+
+
+<!DOCTYPE html>
+<html lang="ch" data-bs-theme='light'>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="keywords" content="bootstrap,blazor,wasm,webassembly,UI,netcore,web,assembly">
+    <meta name="description" content="基于 Bootstrap 风格的 Blazor UI 组件库，森云科技开发的管理系统。">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <base href="/" />
+    <Link Href="_content/BootstrapBlazor.FontAwesome/css/font-awesome.min.css" />
+    <Link Href="_content/BootstrapBlazor/css/bootstrap.blazor.bundle.min.css" />
+    <Link Href="_content/BootstrapBlazor/css/motronic.min.css" />
+    <Link Href="_content/BootstrapBlazor.WinBox/css/winbox.bundle.css" />
+    <Link Href="css/app.css" Version="@version" />
+    <Link Href="AdminSenyun.Server.styles.css" Version="@version" />
+    <title>SenYun Admin</title>
+    <HeadOutlet @rendermode=" new InteractiveServerRenderMode(false)" />
+</head>
+
+<body>
+    <Routes @rendermode=" new InteractiveServerRenderMode(false)" />
+
+    <ReconnectorOutlet ReconnectInterval="5000" @rendermode=" new InteractiveServerRenderMode(false)" />
+
+    <Script Src="_content/BootstrapBlazor/js/bootstrap.blazor.bundle.min.js"></Script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>
+
+@code {
+    private string? version => System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString();
+
+    // [CascadingParameter]
+    // private HttpContext HttpContext { get; set; } = default!;
+
+    // private IComponentRenderMode? RenderModeForPage => HttpContext.Request.Path.StartsWithSegments("/Account")
+    //     ? null
+    //     : new InteractiveServerRenderMode(false);
+}

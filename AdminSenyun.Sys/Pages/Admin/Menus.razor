@@ -1,0 +1,48 @@
+﻿@page "/Admin/Menus"
+
+<SysAdminTable TItem="AdminSenyun.Models.SysNavigation"
+               IsTree="true" OnTreeExpand="OnTreeExpand" TreeNodeConverter="TreeNodeConverter" ModelEqualityComparer="ModelEqualityComparer"
+               ExtendButtonColumnWidth="280" CustomerSearchModel="SearchModel" OnQueryAsync="OnQueryAsync" OnAfterModifyAsync="OnAfterModifyAsync"
+               OnDeleteAsync="OnDeleteAsync"
+               IsPagination="false" @ref=tableRef>
+    <TableToolbarTemplate>
+        <TableToolbarButton TItem="AdminSenyun.Models.SysNavigation" Color="Color.Info" Icon="fa-solid fa-users-gear" Text="分配角色"
+                            IsEnableWhenSelectedOneRow="true" IsShow="@AuthorizeButton("assignRole")"
+                            OnClickCallback="menus => OnAssignmentRoles(menus.First())" />
+    </TableToolbarTemplate>
+    <TableColumns>
+        <TableColumn @bind-Field="@context.Name" Filterable="true" Searchable="true" Width="300"></TableColumn>
+        <TableColumn @bind-Field="@context.Order" Width="50"></TableColumn>
+        <TableColumn @bind-Field="@context.Icon" Width="50" Align="Alignment.Center">
+            <Template Context="v">
+                <i class="text-info cell-icon @v.Value"></i>
+            </Template>
+        </TableColumn>
+        <TableColumn @bind-Field="@context.Url"></TableColumn>
+        <TableColumn @bind-Field="@context.Target" Width="100" Filterable="true" Lookup="Targets"></TableColumn>
+        <TableColumn @bind-Field="@context.IsResource" Width="100" Filterable="true"></TableColumn>
+    </TableColumns>
+    <EditTemplate Context="v">
+        <MenuEditor Value="v" ParementMenus="ParamentMenus" Targets="Targets" />
+    </EditTemplate>
+    <RowButtonTemplate>
+        <TableCellButton Size="Size.ExtraSmall"
+                         IsShow="@AuthorizeButton("assignRole")"
+                         Color="Color.Info" Icon="fa-solid fa-users-gear"
+                         Text="分配角色"
+                         OnClick="() => OnAssignmentRoles(context)" />
+        <TableCellPopConfirmButton Size="Size.ExtraSmall"
+                                   TooltipText="是否添加权限"
+                                   IsShow="@(AuthorizeButton("add") && (context.IsResource==EnumResource.Navigation))"
+                                   Color="Color.Success"
+                                   Icon="fas fa-user-plus"
+                                   Text="权限菜单"
+                                   OnConfirm="() => OnAddMenusSubRole(context)" />
+    </RowButtonTemplate>
+    <CustomerSearchTemplate>
+        @if (context is MenusSearchModel searchModel)
+        {
+            <MenusSearch @bind-Value="searchModel"></MenusSearch>
+        }
+    </CustomerSearchTemplate>
+</SysAdminTable>

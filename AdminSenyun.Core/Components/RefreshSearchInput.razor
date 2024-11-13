@@ -1,0 +1,31 @@
+﻿@inherits BootstrapModuleComponentBase
+
+@* <div class="input-group input-group-xs"> *@
+<Button Text="刷新" Icon="fa-solid fa-arrows-rotate" OnClick="OnRefreshClick"></Button>
+<BootstrapInput @bind-Value="Value"></BootstrapInput>
+<Button Text="搜索" Icon="fa-solid fa-magnifying-glass" OnClick="OnSearchClick"></Button>
+@* </div> *@
+
+@code {
+    /// <summary>
+    /// 搜索值
+    /// </summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>
+    /// 搜索事件，刷新点击传递value  为  "" 空
+    /// </summary>
+    [Parameter]
+    public Func<string, Task>? OnSearchAsync { get; set; }
+
+    private void OnSearchClick()
+    {
+        OnSearchAsync?.Invoke(Value ?? "");
+    }
+
+    private void OnRefreshClick()
+    {
+        OnSearchAsync?.Invoke("");
+    }
+}

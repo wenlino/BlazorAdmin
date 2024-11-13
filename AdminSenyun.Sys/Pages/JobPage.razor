@@ -1,0 +1,113 @@
+﻿@page "/sys/job"
+@* @page "/sys/job/s" *@
+@page "/Admin/Tasks"
+
+@inherits AdminBase
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
+@using Quartz
+@using System.Diagnostics
+@using Quartz.Impl.Matchers
+
+@* <Button OnClick="AddJobClick" Text="添加"></Button>
+<Button OnClick="ViewJobClick" Text="查看"></Button>
+<Button OnClick="Test" Text="测试"></Button> *@
+<Table TItem="JobDto" IsBordered="true" IsStriped="true" IsFixedHeader="true" AllowResizing="true" ShowToolbar="true" ShowDefaultButtons="false" ShowExportButton="true" ShowExtendButtons="true" ShowExtendEditButton="true" ShowExtendDeleteButton="false"
+       OnQueryAsync="OnQueryAsync"
+       OnSaveAsync="OnSaveAsync">
+    <TableColumns>
+        <TableColumn FieldExpression="()=>context.Name" Width="290"></TableColumn>
+        <TableColumn FieldExpression="()=>context.State" Align="Alignment.Center" Width="100">
+            <Template Context="v">
+                @if (v.Value == TriggerState.Normal)
+                {
+                    <Tag Color="Color.Primary">正常</Tag>
+                }
+                else if (v.Value == TriggerState.Blocked)
+                {
+                    <Tag Color="Color.Success">运行中</Tag>
+                }
+                else if (v.Value == TriggerState.Error)
+                {
+                    <Tag Color="Color.Danger">出错</Tag>
+                }
+                else if (v.Value == TriggerState.Paused)
+                {
+                    <Tag Color="Color.Dark">停止</Tag>
+                }
+                else
+                {
+                    <Tag Color="Color.Secondary">@v.Value</Tag>
+                }
+            </Template>
+        </TableColumn>
+        <TableColumn FieldExpression="()=>context.StartTime" Width="150"></TableColumn>
+        <TableColumn FieldExpression="()=>context.NextFireTime" Width="150"></TableColumn>
+        <TableColumn FieldExpression="()=>context.CronExpressionString" Width="200"></TableColumn>
+        <TableColumn FieldExpression="()=>context.Description"></TableColumn>
+    </TableColumns>
+    <RowButtonTemplate>
+        <TableCellButton Text="@(context.IsPaused?"开启":"停止")"
+                         Icon="fas fa-clock"
+                         Color="@(context.IsPaused?Color.Success:Color.Warning)"
+                         OnClick="()=>ActionButtonClick(context)"
+                         IsShow="@AuthorizeButton("pause")">
+        </TableCellButton>
+    </RowButtonTemplate>
+    <EditTemplate>
+        <BootstrapInput @bind-Value=context.CronExpressionString></BootstrapInput>
+        <Textarea @bind-Value=context.Description></Textarea>
+    </EditTemplate>
+</Table>
+
+@code {
+
+    [Inject]
+    private IScheduler Scheduler { get; set; }
+
+    private async Task<QueryData<JobDto>?> OnQueryAsync(QueryPageOptions options)
+    {
+        var triggerKeys = await Scheduler.GetTriggerKeys(GroupMatcher<TriggerKey>.AnyGroup());
+        var jobDtos = triggerKeys.Select(async t =>
+            JobDto.CreateAsync(Scheduler, await Scheduler.GetTrigger(t))
+        ).Select(t => t.Result);
+        var items = await Task.WhenAll(jobDtos);
+        return await base.QueryAsync(items.ToList());
+    }
+
+    private async Task<bool> OnSaveAsync(JobDto jobDto, ItemChangedType type)
+    {
+        try
+        {
+            var cron = new CronExpression(jobDto.CronExpressionString);
+
+            var sysjob = Db.Queryable<SysJob>().Where(t => t.Name == jobDto.Name).First();
+            sysjob.Cron = jobDto.CronExpressionString;
+            sysjob.Type = jobDto.JobType.FullName;
+            sysjob.Description = jobDto.Description;
+
+            Db.Updateable(sysjob).ExecuteCommand();
+            await jobDto.UploadJobServerAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await this.MsgError(ex.Message);
+            return false;
+        }
+    }
+
+    private void ActionButtonClick(JobDto jobDto)
+    {
+        if (jobDto.IsPaused)
+        {
+            jobDto.ResumeJob();
+        }
+        else
+        {
+            jobDto.PausedJob();
+        }
+        Db.Updateable<SysJob>().SetColumns(t => t.IsPaused == jobDto.IsPaused)
+        .Where(t => t.Name == jobDto.Name)
+        .ExecuteCommand();
+    }
+}

@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AdminSenyun.Models\AdminSenyun.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="SqlSugar" />
+    <Using Include="AdminSenyun.Models" />
+    <Using Include="AdminSenyun.Data.Security" />
+    <Using Include="AdminSenyun.Data.Core" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+  </ItemGroup>
+</Project>

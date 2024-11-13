@@ -1,0 +1,124 @@
+﻿@page "/plugin"
+@using System.Reflection
+@using AdminSenyun.Core.Components
+@inject AdminSenyun.Server.Services.PluginService PluginService
+@attribute [Authorize]
+
+<Table TItem="PluItem" IsBordered="true" OnQueryAsync="OnQueryAsync">
+    <TableColumns>
+        <TableColumn FieldExpression="()=>context.FullName"></TableColumn>
+        <TableColumn FieldExpression="()=>context.PageCount"></TableColumn>
+        <TableColumn FieldExpression="()=>context.JobCount"></TableColumn>
+        <TableColumn FieldExpression="()=>context.EntityCount"></TableColumn>
+    </TableColumns>
+    <DetailRowTemplate>
+        <div style="width:100%">
+            <Card HeaderText="页面">
+
+                <BodyTemplate>
+                    <Table Height="200" IsFixedHeader="true" IsBordered="true" AutoGenerateColumns="true" Items="context.TypePageDtos"></Table>
+                </BodyTemplate>
+
+            </Card>
+            <Card HeaderText="任务">
+                <BodyTemplate>
+                    <Table Height="200" IsFixedHeader="true" IsBordered="true" AutoGenerateColumns="true" Items="context.TypeJobDtos"></Table>
+                </BodyTemplate>
+
+            </Card>
+            <Card HeaderText="实体">
+                <BodyTemplate>
+                    <Table Height="200" IsFixedHeader="true" IsBordered="true" AutoGenerateColumns="true" Items="context.TypeEntityDtos"></Table>
+                </BodyTemplate>
+            </Card>
+        </div>
+    </DetailRowTemplate>
+</Table>
+
+@code {
+
+    public async Task<QueryData<PluItem>> OnQueryAsync(QueryPageOptions option)
+    {
+        var assemblies = PluginService.PluginsAssemblies;
+
+        return new QueryData<PluItem>()
+            {
+                Items = assemblies.Select(t => new PluItem(t)).ToList(),
+            };
+    }
+
+
+    public class PluItem
+    {
+        private Assembly assembly;
+
+        public PluItem()
+        {
+        }
+
+        public PluItem(Assembly assembly)
+        {
+            this.assembly = assembly;
+            RoutePageTypes = assembly.GetTypes().Where(t => t.GetCustomAttributes<RouteAttribute>().Any()).ToList();
+            TypePageDtos = RoutePageTypes.Select(t => new TypePageDto(t)).ToList();
+            this.TypeJobDtos = assembly.GetTypes()
+            .Where(t => typeof(Quartz.IJob).IsAssignableFrom(t))
+            .Select(t => new TypeDto(t)).ToList();
+
+            this.TypeEntityDtos = assembly.GetTypes()
+            .Where(t => t.GetCustomAttributes<SqlSugar.SugarTable>().Any())
+            .Select(t => new TypeDto(t)).ToList();
+        }
+        [Description("程序集")]
+        public string FullName => assembly.FullName;
+
+        [Description("页面数")]
+        public int PageCount => RoutePageTypes.Count;
+
+        [Description("任务数")]
+        public int JobCount => TypeJobDtos.Count; 
+        
+        [Description("实体数")]
+        public int EntityCount => TypeEntityDtos.Count;
+
+        public List<Type> RoutePageTypes { get; private set; }
+
+        public List<TypePageDto> TypePageDtos { get; private set; }
+
+        public List<TypeDto> TypeJobDtos { get; private set; }
+
+        public List<TypeDto> TypeEntityDtos { get; private set; }
+    }
+
+    public class TypePageDto : TypeDto
+    {
+        private Type type;
+        public TypePageDto() { }
+        public TypePageDto(Type type) : base(type)
+        {
+            this.type = type;
+
+            Urls = type.GetCustomAttributes<RouteAttribute>().Select(t => t.Template).ToList();
+        }
+
+        [Description("地址")]
+        public List<string> Urls { get; private set; }
+    }
+    public class TypeDto
+    {
+        private Type type;
+        public TypeDto()
+        {
+        }
+
+        public TypeDto(Type type)
+        {
+            this.type = type;
+        }
+        [Description("名称")]
+        public string Name => type.Name;
+
+        [Description("结构")]
+        public string FullName => type.FullName;
+    }
+}

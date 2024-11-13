@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.Diagnostics.CodeAnalysis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="BootstrapBlazor" Version="9.0.0-rc.2.11.6.0" />
+    <PackageReference Include="BootstrapBlazor.Chart" Version="8.4.0" />
+    <PackageReference Include="BootstrapBlazor.Middleware" Version="8.0.0" />
+    <PackageReference Include="BootstrapBlazor.WinBox" Version="8.2.0" />
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="Quartz.AspNetCore" Version="3.13.0" />
+    <PackageReference Include="SqlSugarCore" Version="5.1.4.170" />
+    <PackageReference Include="SqlSugar.AccessCore" Version="5.10.4.166" />
+    <PackageReference Include="BootstrapBlazor.TableExport" Version="8.4.0" />
+    <PackageReference Include="BootstrapBlazor.CodeEditor" Version="8.2.0" />
+    <PackageReference Include="BootstrapBlazor.FontAwesome" Version="8.2.0" />
+    <PackageReference Include="BootstrapBlazor.IconPark" Version="8.2.0" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
+    <PackageReference Include="Stimulsoft.Reports.Blazor" Version="2024.4.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+    <Using Include="BootstrapBlazor.Components" />
+    <Using Include="System.ComponentModel" />
+    <Using Include="SqlSugar" />
+  </ItemGroup>
+</Project>

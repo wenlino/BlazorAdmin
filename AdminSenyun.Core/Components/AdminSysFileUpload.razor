@@ -1,0 +1,68 @@
+﻿@using AdminSenyun.Models
+@inherits AdminBase
+
+<ButtonUpload TValue="string"
+              ShowUploadFileList="true"
+              ShowProgress=true
+              OnChange="OnFileChange">
+</ButtonUpload>
+
+@code {
+    [Parameter]
+    public Func<SysFile, Task>? SysFileChanged { get; set; }
+
+    async Task OnFileChange(UploadFile file)
+    {
+        if (file != null && file.File != null)
+        {
+            var name = Path.GetFileNameWithoutExtension(file.OriginFileName);
+            var ext = Path.GetExtension(file.OriginFileName);
+
+            var type = file.File?.ContentType;
+            if (string.IsNullOrWhiteSpace(type))
+                type = "application/octet-stream";
+
+            var df = new SysFile()
+                {
+                    Id = SqlSugar.SnowFlakeSingle.Instance.NextId(),
+                    Name = name,
+                    Ext = ext,
+                    SizeKb = file.Size / 1024,
+                    ContentType = type,
+                };
+            var folder = Path.Combine(this.GetSysFileRootPath(), df.Folder);
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            //保存文件
+
+            await SaveToFile(file, Path.Combine(folder, df.Id + ext), df.IsShow() ? $"api/file/{df.Id}" : "");
+
+            this.Db.Insertable(df).ExecuteCommand();
+            Func<string, string> task = a => a;
+
+            await SysFileChanged.InvokeAwait(df);
+
+            await base.MsgSuccess("文件上传成功");
+        }
+    }
+
+    private async Task<bool> SaveToFile(UploadFile file, string path, string url)
+    {
+        var ret = await file.SaveToFileAsync(path, 500 * 1024 * 1024);
+        if (ret)
+        {
+            // 保存成功
+            file.PrevUrl = url;
+        }
+        else
+        {
+            var errorMessage = $"{"保存文件失败"} {file.OriginFileName}";
+            file.Code = 1;
+            file.Error = errorMessage;
+            await ToastService.Error("上传文件", errorMessage);
+        }
+
+        return ret;
+    }
+}

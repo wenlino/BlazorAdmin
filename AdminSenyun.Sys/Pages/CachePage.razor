@@ -1,0 +1,67 @@
+﻿@page "/sys/cache"
+
+<Table TItem="CacheDto"
+       ShowToolbar=true IsBordered="true"
+       ShowAddButton=false ShowEditButton="false" ShowExtendEditButton="false"
+       IsMultipleSelect=true ShowExtendButtons=true ShowSkeleton="true"
+       IsExtendButtonsInRowHeader="true"
+       
+       OnDeleteAsync="OnDeleteAsync"
+       OnQueryAsync="OnQueryAsync">
+    <TableColumns>
+        <TableColumn @bind-Field=context.Name Width="200"></TableColumn>
+        <TableColumn FieldExpression="()=>context.TypeName"></TableColumn>
+    </TableColumns>
+    <TableToolbarTemplate>
+        <TableToolbarButton Text="清理全部缓存"
+                            Icon="fa-solid fa-xmark"
+                            Color="Color.Danger"
+                            OnClick="OnClearAll">
+        </TableToolbarButton>
+    </TableToolbarTemplate>
+</Table>
+
+@code {
+    [Inject]
+    private ICache cache { get; set; }
+
+    public class CacheDto
+    {
+        public CacheDto()
+        {
+        }
+
+        public CacheDto(string name, Type type)
+        {
+            this.Name = name;
+            this.Type = type;
+        }
+
+        [Description("名称")]
+        public string Name { get; set; }
+
+        public Type Type { get; set; }
+        [Description("类型")]
+        public string TypeName => this.Type.FullName;
+    }
+
+    private async Task<QueryData<CacheDto>> OnQueryAsync(QueryPageOptions options)
+    {
+        var items = cache.GetKeyValuePairs().Select(t => new CacheDto(t.Key, t.Value)).OrderBy(t => t.Name);
+        return new QueryData<CacheDto>() { Items = items };
+    }
+
+    private async Task<bool> OnDeleteAsync(IEnumerable<CacheDto> cacheDtos)
+    {
+        foreach (var item in cacheDtos)
+        {
+            cache.Remove(item.Name);
+        }
+        return true;
+    }
+
+    private async Task OnClearAll()
+    {
+        cache.ClearAll();
+    }
+}

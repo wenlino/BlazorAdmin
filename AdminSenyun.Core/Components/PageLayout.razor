@@ -1,0 +1,67 @@
+﻿@inherits BootstrapModuleComponentBase
+
+<div class="page-layout-box">
+
+    @if (HeaderTemplate != null)
+    {
+        @HeaderTemplate
+    }
+
+    @if (ToolbarButtonTemplate != null)
+    {
+        <div class="btn-toolbar btn-group">
+            <div class="input-group">
+                @ToolbarButtonTemplate
+            </div>
+        </div>
+    }
+
+    <Scroll style="flex-basis:auto">
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+
+        @if (Body != null)
+        {
+            @Body
+        }
+    </Scroll>
+
+    @if (BottomTemplate != null)
+    {
+        @BottomTemplate
+    }
+</div>
+
+<style>
+    .page-layout-box {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-layout-toolbar {
+        content: "";
+        display: block;
+        clear: both;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public RenderFragment? HeaderTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment? ToolbarButtonTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment? BottomTemplate { get; set; }
+
+    [Parameter]
+    public virtual RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public virtual RenderFragment? Body { get; set; }
+}

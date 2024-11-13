@@ -1,0 +1,116 @@
+﻿@using AdminSenyun.Models
+@inherits AdminBase
+
+<div class="@ClassString" style="height:@(IsMultiple?"600px":"auto")">
+    <Scroll Height="100%">
+        <CardUpload TValue="string"
+                    IsMultiple="IsMultiple"
+                    OnChange="OnFileChange"
+                    OnDelete="OnFileDelete"
+                    ShowProgress="true">
+        </CardUpload>
+    </Scroll>
+</div>
+
+
+@code {
+    /// <summary>
+    /// 上传完成后事件
+    /// </summary>
+    [Parameter]
+    public Func<SysFile, Task>? OnSysFileChanged { get; set; }
+
+    /// <summary>
+    /// 上传完成后  事件
+    /// </summary>
+    [Parameter]
+    public Func<long, Task>? OnIdChanged { get; set; }
+
+    /// <summary>
+    /// 删除文件事件
+    /// </summary>
+    [Parameter]
+    public Func<long, Task<bool>>? OnDelete { get; set; }
+
+    /// <summary>
+    /// 是否允许多个上传
+    /// </summary>
+    [Parameter]
+    public bool IsMultiple { get; set; } = false;
+
+    protected string? ClassString => CssBuilder.Default()
+    .AddClass("d-flex justify-content-center", !IsMultiple)
+    .Build();
+
+    async Task OnFileChange(UploadFile file)
+    {
+        if (file != null && file.File != null)
+        {
+            var name = Path.GetFileNameWithoutExtension(file.OriginFileName) ?? "";
+            var ext = Path.GetExtension(file.OriginFileName) ?? "";
+
+            var type = file.File?.ContentType;
+            if (string.IsNullOrWhiteSpace(type))
+                type = "application/octet-stream";
+
+            var df = new SysFile()
+                {
+                    Id = SqlSugar.SnowFlakeSingle.Instance.NextId(),
+                    Name = name,
+                    Ext = ext,
+                    SizeKb = file.Size / 1024,
+                    ContentType = type,
+                };
+            var folder = Path.Combine(this.GetSysFileRootPath(), df.Folder);
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            //保存文件
+
+            await SaveToFile(file, Path.Combine(folder, df.Id + ext), df.IsShow() ? $"api/file/{df.Id}" : "");
+
+            file.FileName = df.Id.ToString();
+
+            this.Db.Insertable(df).ExecuteCommand();
+
+            await OnIdChanged.InvokeAwait(df.Id);
+            await OnSysFileChanged.InvokeAwait(df);
+        }
+    }
+
+
+    private async Task<bool> SaveToFile(UploadFile file, string path, string url)
+    {
+        var ret = await file.SaveToFileAsync(path, 500 * 1024 * 1024);
+        if (ret)
+        {
+            // 保存成功
+            file.PrevUrl = url;
+        }
+        else
+        {
+            var errorMessage = $"{"保存文件失败"} {file.OriginFileName}";
+            file.Code = 1;
+            file.Error = errorMessage;
+            await ToastService.Error("上传文件", errorMessage);
+        }
+
+        return ret;
+    }
+
+
+    private async Task<bool> OnFileDelete(UploadFile uploadFile)
+    {
+        if (OnDelete != null)
+        {
+            var id = long.Parse(uploadFile.FileName);
+            var result = await OnDelete.Invoke(id);
+            if (result)
+            {
+                Db.Deleteable<SysFile>().Where(t => t.Id == id).ExecuteCommand();
+                return true;
+            }
+        }
+        return false;
+    }
+}

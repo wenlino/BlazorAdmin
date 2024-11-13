@@ -1,0 +1,114 @@
+﻿@page "/rep/designer/{Ids}"
+@layout MainLayout
+@inherits AdminBase
+
+@using AdminSenyun.Rep.Components.Shared
+@using Stimulsoft.Base
+@using Stimulsoft.Report
+@using Stimulsoft.Report.Blazor
+@using Stimulsoft.Report.Web
+
+<PageTitle>报表设计器</PageTitle>
+
+<StiBlazorDesigner Report="@Report"
+                   Theme="StiDesignerTheme.Office2022BlackCarmine"
+                   OnSaveReport="OnSaveReport"
+                   OnOpenReport="OnOpenReport"
+                   Localization="Localization/zh-CHS.xml"
+                   Options="options" />
+
+@code {
+    public RepBase RepBase { get; set; }
+
+    private StiReport Report { get; set; }
+
+    [Parameter]
+    public string Ids { get; set; }
+
+
+    private StiBlazorDesignerOptions options { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        long id = long.Parse(this.Ids);
+
+        this.RepBase = this.Db.Queryable<RepBase>().Where(t => t.Id == id).First() ?? throw new Exception("没有正确获取到报表");
+
+        options = new StiBlazorDesignerOptions();
+
+        options.Toolbar.ShowAboutButton = false;
+        options.FileMenu.ShowAbout = false;
+
+        options.Components.ShowRichText = true;
+
+        options.Server.AllowLoadingCustomFontsToClientSide = true;
+
+
+        this.Report = new StiReport();
+
+        if (!string.IsNullOrWhiteSpace(this.RepBase.Report))
+        {
+            try
+            {
+                this.Report.LoadFromString(this.RepBase.Report);
+            }
+            catch
+            {
+                this.Report = new StiReport();
+            }
+        }
+
+        try
+        {
+            this.Report.ReportName = this.RepBase.Name;
+            AddColumn(id);
+        }
+        catch { }
+    }
+
+    private void AddColumn(long id)
+    {
+        try
+        {
+            var gs = this.Db.Queryable<RepData>().Where(t => t.RepBaseId == id).ToList();
+            foreach (var g in gs.GroupBy(t => t.DbName))
+            {
+                var db = GetSysSettingISqlSugar(g.Key);
+
+                foreach (var item in g)
+                {
+                    var sdt = this.Report.Dictionary.DataSources.FindByName(item.Name);
+
+                    if (sdt == null)
+                    {
+                        sdt = new Stimulsoft.Report.Dictionary.StiDataTableSource(item.Name, item.Name);
+                        this.Report.Dictionary.DataSources.Add(sdt);
+                    }
+                    var dt = db.Ado.GetDataTable(item.Declare + "\r\n" + item.Sql);
+
+                    foreach (System.Data.DataColumn col in dt.Columns)
+                    {
+                        if (sdt.Columns.FindByName(col.ColumnName) == null)
+                        {
+                            sdt.Columns.Add(col.ColumnName, col.DataType);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void OnOpenReport(StiReportDataEventArgs stiReportDataEventArgs)
+    {
+        this.Report = stiReportDataEventArgs.Report;
+        this.Report.ReportName = this.RepBase.Name;
+    }
+
+    private void OnSaveReport()
+    {
+        this.RepBase.Report = this.Report.SaveToString();
+        this.Db.Updateable(this.RepBase).ExecuteCommand();
+    }
+}

@@ -1,0 +1,125 @@
+﻿@inject AdminSenyun.Server.Services.PluginService PluginService
+
+<CascadingValue Value="this" IsFixed="true">
+    @foreach (var item in Items)
+    {
+        <div @key="@item.Url" class="@GetContentClassString(item)" style="height:var(--main-height)">
+            <CascadingValue Value="item.Url" IsFixed="true">
+                @item.Content
+            </CascadingValue>
+        </div>
+    }
+</CascadingValue>
+
+@code {
+    [Inject]
+    [NotNull]
+    private NavigationManager? Navigator { get; set; }
+
+    [Inject]
+    [NotNull]
+    private AuthenticationStateProvider? AuthenticationStateProvider { get; set; }
+
+    [Inject]
+    [NotNull]
+    private IAdmin? Admin { get; set; }
+
+    [Inject]
+    [NotNull]
+    private DialogService? DialogService { get; set; }
+
+    private string? UserName { get; set; }
+
+    private static string? GetContentClassString(MainPageItem item) => CssBuilder.Default()
+        .AddClass("d-none", !item.IsActive)
+        .Build();
+
+    private List<MainPageItem> Items { get; set; } = [];
+
+    public class MainPageItem
+    {
+        public bool IsActive { get; set; }
+        public string? Url { get; set; }
+        public RenderFragment? Content { get; set; }
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        UserName = state.User.Identity?.Name;
+
+
+        var url = Navigator.ToBaseRelativePath(Navigator.Uri);
+        Navigator.LocationChanged -= LocationChanged;
+        Navigator.LocationChanged += LocationChanged;
+        await AddPageItemAsync(url);
+    }
+
+    private async void LocationChanged(object? s,LocationChangedEventArgs e)
+    {
+        await AddPageItemAsync(Navigator.ToBaseRelativePath(e.Location));
+    }
+
+    private async Task AddPageItemAsync(string url)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(UserName))
+                throw new Exception("没有正确获取到用户信息");
+
+            url = url.IndexOf('?') > 0 ? url[..url.IndexOf('?')] : url.IndexOf('#') > 0 ? url[..url.IndexOf('#')] : url;
+            url = url.Replace("\\", "/");
+
+            if (url.Contains("Account/Logout"))
+                return;
+
+            if (!await Admin.AuthorizingNavigation(UserName, url) && UserName.ToLower() != "admin")
+            {
+                throw new Exception("访问页面没有取得必要权限，无法正常访问");
+            }
+
+
+            var isadd = true;
+            foreach (var it in Items)
+            {
+                if (url == it.Url)
+                {
+                    it.IsActive = true;
+                    isadd = false;
+                }
+                else
+                {
+                    it.IsActive = false;
+                }
+            }
+
+            if (isadd)
+            {
+                var type = PluginService.GetUrlToPageType(url) ?? throw new Exception("没有获取到相关页面");
+                var item = new MainPageItem()
+                    {
+                        Content = builder =>
+                        {
+                            builder.OpenComponent(0, type);
+                            builder.CloseComponent();
+                        },
+                        IsActive = true,
+                        Url = url,
+                    };
+                Items.Add(item);
+            }
+
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Show(new DialogOption()
+                {
+                    Title = "出错",
+                    Size = Size.Medium,
+                    BodyTemplate = builder => builder.AddContent(0, ex.Message)
+                });
+        }
+    }
+}

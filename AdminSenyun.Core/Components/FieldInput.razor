@@ -1,0 +1,144 @@
+﻿@using System.Reflection
+@typeparam TValue
+
+<div style="display:flex">
+    <div class="col-auto col-form-label" style="width:@(LabelWidth)px">
+        <span>@Label</span>
+    </div>
+    <div style="flex:auto">
+        @if (Items?.Any() ?? false)
+        {
+            <Select Value=Value
+                    ValueChanged="ValueChanged"
+                    ValueExpression="ValueExpression"
+                    Items="Items"
+                    OnValueChanged="OnValueChanged"
+                    OnSelectedItemChanged="OnSelectedItemChanged"
+                    @ref=selectRef>
+            </Select>
+        }
+        else if (IsNumber ?? false)
+        {
+            <BootstrapInputNumber Value=Value
+                                  ValueChanged="ValueChanged"
+                                  ValueExpression="ValueExpression"
+                                  OnValueChanged="OnValueChanged"
+                                  OnEnterAsync="OnEnterAsync"
+                                  @ref=bootstrapInputNumberRef>
+            </BootstrapInputNumber>
+        }
+        else
+        {
+            <BootstrapInput Value=Value
+                            ValueChanged="ValueChanged"
+                            ValueExpression="ValueExpression"
+                            OnValueChanged="OnValueChanged"
+                            OnEnterAsync="OnEnterAsync"
+                            @ref=bootstrapInputRef>
+            </BootstrapInput>
+        }
+    </div>
+</div>
+
+@code {
+    private BootstrapInputNumber<TValue> bootstrapInputNumberRef;
+    private BootstrapInput<TValue> bootstrapInputRef;
+    private Select<TValue> selectRef;
+
+    /// <summary>
+    /// 绑定值
+    /// </summary>
+    [Parameter]
+    public TValue Value { get; set; }
+
+    /// <summary>
+    /// 值变化事件
+    /// </summary>
+    [Parameter]
+    public EventCallback<TValue> ValueChanged { get; set; }
+
+    /// <summary>
+    /// 绑定表达式
+    /// </summary>
+    [Parameter]
+    public System.Linq.Expressions.Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    /// <summary>
+    /// 标签文本 有限显示输入内容 否则读取 Description 特性值
+    /// </summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>
+    /// 标签宽度 默认80
+    /// </summary>
+    [Parameter]
+    public int LabelWidth { get; set; } = 80;
+
+    /// <summary>
+    /// 是否是数量输入模式 - 默认为 null 自动判断类型 int|long|short|float|double|decimal
+    /// </summary>
+    [Parameter]
+    public bool? IsNumber { get; set; }
+
+    /// <summary>
+    /// 回车事件
+    /// </summary>
+    [Parameter]
+    public Func<TValue, Task>? OnEnterAsync { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Value 改变时回调方法 Select控件是 选中选项事件
+    /// </summary>
+    [Parameter]
+    public Func<TValue, Task>? OnValueChanged { get; set; }
+
+    /// <summary>
+    /// 下拉框内容数组
+    /// </summary>
+    [Parameter]
+    public IEnumerable<SelectedItem>? Items { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (Label is null)
+        {
+            var member = ValueExpression?.Body as System.Linq.Expressions.MemberExpression;
+            var propertyInfo = member?.Member as PropertyInfo;
+            if (propertyInfo != null)
+            {
+                var description = propertyInfo.GetCustomAttribute<DescriptionAttribute>();
+                this.Label = description?.Description ?? "";
+            }
+        }
+
+        List<Type> numbertypes = [typeof(int), typeof(long), typeof(short), typeof(float), typeof(double), typeof(decimal)];
+        if (numbertypes.Contains(typeof(TValue)) && IsNumber is null)
+        {
+            IsNumber = true;
+        }
+    }
+
+    private async Task OnSelectedItemChanged(SelectedItem selectedItem)
+    {
+        if (selectedItem.Value is TValue value && OnEnterAsync != null)
+        {
+            await OnEnterAsync.Invoke(value);
+        }
+    }
+
+
+    /// <summary>
+    /// Focus 获取焦点事件  Select 无效
+    /// </summary>
+    /// <returns></returns>
+    public async Task FocusAsync()
+    {
+        if (IsNumber ?? false)
+            await bootstrapInputNumberRef.FocusAsync();
+        else
+            await bootstrapInputRef.FocusAsync();
+    }
+}

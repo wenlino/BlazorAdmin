@@ -1,0 +1,207 @@
+﻿.wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+@media (min-width: 768px) {
+    .wrap {
+        background-color: #5bc0de;
+        background: url('../images/bg2.jpg') fixed no-repeat;
+        background-size: 100% 100%;
+    }
+
+    .container {
+        background: url('../images/bg3.png') no-repeat;
+        background-size: contain;
+        width: 704px;
+        height: 404px;
+        margin: 0 auto;
+    }
+
+    .logo-png {
+        background: url('../images/senyun.png') no-repeat;
+        background-size: contain;
+        width: 230px;
+        height: 230px;
+        margin: auto;
+    }
+}
+
+.bottom-info {
+    color: white;
+    bottom: 50px;
+    position: absolute;
+    text-align: center;
+    width: 100%;
+}
+
+    .bottom-info .text {
+        background-color: floralwhite;
+        padding: 8px;
+        border-radius: 16px;
+        opacity: 0.5;
+    }
+
+.form-signin-heading {
+    margin: 0;
+    padding: 20px 0px;
+    text-align: center;
+    background-color: #41cac0;
+    border-radius: 20px 20px 0 0;
+    color: #fff;
+}
+
+.login-wrap {
+    display: flex;
+    flex-direction: column;
+    margin: 1rem;
+}
+
+    .login-wrap .card, .login-wrap .card:hover, .modal .card, .modal .card:hover {
+        border: 1px solid #84bbe2;
+    }
+
+.login-sms,
+.is-mobile .login-up {
+    display: none;
+}
+
+.is-mobile .login-sms {
+    display: block;
+}
+
+::deep .btn-login {
+    background: #f67a6e;
+    border-color: transparent;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    box-shadow: 0 4px #e56b60;
+    line-height: 1;
+}
+
+    ::deep .btn-login:focus {
+        box-shadow: 0 4px #e56b60;
+    }
+
+::deep .input-group-text {
+    background-color: #6bc3f4;
+    border-color: #1ca0e9;
+}
+
+::deep .form-check-label {
+    color: #212529;
+}
+
+::deep .form-control {
+    border-color: #1ca0e9 !important;
+}
+
+::deep .divider-wrap {
+    background-color: #7c86bb;
+}
+
+::deep .divider-text {
+    background-color: #a7daf9;
+}
+
+.login-list {
+    display: flex;
+    justify-content: space-between;
+}
+
+    .login-list ::deep img {
+        width: 32px;
+        height: 32px;
+    }
+
+::deep .btn-sms {
+    width: 140px;
+}
+
+@media (max-width: 767px) {
+    .wrap {
+        background-color: #5bc0de;
+        background: url('../images/bg2.jpg') fixed no-repeat;
+        background-size: 100% 100%;
+    }
+
+    .form-signin-heading {
+        background-color: #247ECA;
+    }
+
+    .login-input-box {
+        background-color: #39B8EF;
+        border-radius: 0 0 20px 20px;
+    }
+
+    .form-signin {
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 5px;
+        max-width: 320px;
+        border: solid 1px #ddd;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.125);
+    }
+
+    .logo-png {
+        display: none;
+    }
+
+    .login-wrap {
+        width: 300px;
+    }
+}
+
+@media (min-width: 768px) {
+    .form-signin-heading {
+        padding: 28px 0;
+        background-color: transparent;
+    }
+
+    .login-wrap {
+        width: 300px;
+        height: 274px;
+        position: relative;
+        justify-content: center;
+    }
+
+    .slidercaptcha {
+        width: 300px;
+    }
+
+        .slidercaptcha, .slidercaptcha.oauth {
+            height: 280px;
+        }
+
+            .slidercaptcha.card .card-body {
+                padding: 15px 15px 0 15px;
+            }
+
+    .login-footer {
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+    }
+
+        .login-footer .login-footer-body li a {
+            color: #e0e0e0;
+        }
+}
+
+@media (min-width: 768px) {
+    .gitee.wrap {
+        background-color: #f1f2f7;
+        background-image: none;
+    }
+
+    .gitee .container {
+        width: 704px;
+        height: 404px;
+        margin: 0 auto;
+    }
+}

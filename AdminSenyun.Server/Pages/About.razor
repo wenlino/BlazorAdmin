@@ -1,0 +1,99 @@
+﻿@page "/about"
+
+@attribute [Authorize]
+@using BootstrapBlazor.Components
+<PageTitle>森云管理系统</PageTitle>
+
+
+
+<Card>
+    <HeaderTemplate>
+        内核版本：V.@System.Reflection.Assembly.GetExecutingAssembly().GetName().Version
+        发布日期：@(new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).CreationTime.ToString("yyyy-MM-dd HH:mm:ss"))
+    </HeaderTemplate>
+    <BodyTemplate>
+        <h6>森云科技</h6>
+        <Divider />
+        <ul>
+            <li>此软件由珠海森云科技有限公司开发和发行</li>
+            <li>若使用此软件需要需要取得珠海森云科技有限公司授权。</li>
+            <li>若没有取得授权，任然使用此软件由此产生的任何问题，本司不承担任何责任。且可保留证据并依法追究其责任权力。</li>
+        </ul>
+    </BodyTemplate>
+</Card>
+@foreach (var rel in rels)
+{
+    <Card>
+        <HeaderTemplate>
+            版本：V.@rel?.GetVersion()?.ToString()
+            发布：@rel?.GetDateTime().ToString("yyyy-MM-dd")
+        </HeaderTemplate>
+        <BodyTemplate>
+            <h6>@rel.Name </h6>
+            <Divider />
+            <pre>@rel.Text</pre>
+            <Divider />
+            <ul>
+                @foreach (var item in rel.Tags)
+                {
+                    <li>@item</li>
+                }
+            </ul>
+        </BodyTemplate>
+    </Card>
+}
+
+
+
+
+@code {
+    private List<Rel> rels = new List<Rel>()
+    {
+        new Rel()
+        {
+            Name="优化功能",
+            Text="优化用户管理及订单管理",
+            Ver="2.4.0.0",
+            Date="2024-9-6",
+            Tags=
+            [
+                "增加了EAI模块，支持输出csv，excel文档",
+            ]
+        },
+        new Rel()
+        {
+            Name="优化订单管理",
+            Text="优化用户管理及订单管理",
+            Ver="2.3.0.0",
+            Date="2024-7-6",
+            Tags=
+            [
+                "优化数据导出功能，表格数据可以Excel csv 文件导出",
+            ]
+        },
+        new Rel()
+        {
+            Name="优化订单管理",
+            Text="优化用户管理及订单管理",
+            Ver="2.2.1.1",
+            Date="2024-7-5",
+            Tags=
+            [
+                "优化订单管理",
+                "优化用户管理",
+                "优化报表管理模板"
+            ]
+        }
+    };
+
+    public class Rel
+    {
+        public string Name { get; set; } = "";
+        public string Text { get; set; } = "";
+        public string Ver { get; set; } = "";
+        public string Date { get; set; } = "2021-10-01";
+        public List<string> Tags { get; set; } = new List<string>();
+        public DateTime GetDateTime() => DateTime.Parse(Date);
+        public Version GetVersion() => Version.Parse(Ver);
+    }
+}

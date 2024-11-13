@@ -1,0 +1,26 @@
+﻿@using AdminSenyun.Core.Components
+
+@page "/test/pa"
+
+
+<PageLayout>
+    <HeaderTemplate>
+        <Button Text="测试" Size="Size.ExtraSmall"></Button>
+    </HeaderTemplate>
+    <BottomTemplate>
+        <div style="background-color:red;">22222</div>
+    </BottomTemplate>
+    <Body>
+       <AdminTable TItem="Models.SysError"></AdminTable>
+    </Body>       
+    <ToolbarButtonTemplate>
+        <Button Text="按钮测试" Size="Size.ExtraSmall"></Button>
+        <Button Text="按钮测试" Size="Size.ExtraSmall"></Button>
+        <Button Text="按钮测试" Size="Size.ExtraSmall"></Button>
+        <Button Text="按钮测试" Size="Size.ExtraSmall"></Button>
+        <Button Text="按钮测试"></Button>
+    </ToolbarButtonTemplate> 
+</PageLayout>
+@code {
+
+}

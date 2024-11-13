@@ -1,0 +1,114 @@
+﻿@page "/Admin/Dicts"
+@using AdminSenyun.Sys.Components
+@using SqlSugar
+@using AdminSenyun.Core
+
+<Split Basis="260px">
+    <FirstPaneTemplate>
+        <ListGroup Items="Items" OnClickItem="OnClickItem">
+            <HeaderTemplate>
+                <div class="text-center" style="padding:0.5rem;border-bottom:2px solid var(--bs-list-group-border-color)">
+                    <h6>字典标签</h6>
+                </div>
+            </HeaderTemplate>
+        </ListGroup>
+    </FirstPaneTemplate>
+    <SecondPaneTemplate>
+        <SysAdminTable TItem="SysDict"
+                       CreateItemCallback="CreateItemCallback"
+                       OnQueryAsync="OnQueryAsync"
+                       OnAfterModifyAsync="OnAfterModifyAsync"
+                       @ref=dictRef>
+            <TableColumns>
+                <TableColumn @bind-Field="context.Category" Visible=false>
+                </TableColumn>
+                <TableColumn @bind-Field="context.Name" Width="300" Filterable="true" Searchable="true" Sortable="true">
+                    <Template Context="v">
+                        <Tag Color="v.Row.Color">@v.Value</Tag>
+                    </Template>
+                </TableColumn>
+                <TableColumn @bind-Field="context.Code" Filterable="true" Searchable="true" Sortable="true">
+                </TableColumn>
+                <TableColumn @bind-Field="context.Color">
+                    <Template Context="v">
+                        <Tag Color="v.Value">@v.Value</Tag>
+                    </Template>
+                </TableColumn>
+            </TableColumns>
+            <EditTemplate>
+                <div class="row g-3 form-inline">
+                    <div class="col-12 col-sm-4">
+                        <Select Items="selectedItems" @bind-Value=context.Category IsEditable=true></Select>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <BootstrapInput @bind-Value=context.Name></BootstrapInput>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <Select @bind-Value=context.Color></Select>
+                    </div>
+                    <div class="col-12">
+                        <BootstrapInput @bind-Value=context.Code></BootstrapInput>
+                    </div>
+                </div>
+            </EditTemplate>
+        </SysAdminTable>
+    </SecondPaneTemplate>
+</Split>
+
+
+
+@code {
+    [Inject, NotNull]
+    ICache? cache { get; set; }
+
+    [Inject, NotNull]
+    IDict? dict { get; set; }
+
+    [Inject, NotNull]
+    ISqlSugarClient? db { get; set; }
+
+    private List<string?> Items { get; set; } = [];
+    private List<SelectedItem> selectedItems { get; set; } = [];
+
+    private string? dictCategorySelected { get; set; }
+
+    [NotNull]
+    private SysAdminTable<SysDict>? dictRef { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        RefreshItems();
+    }
+
+    private async Task OnClickItem(string? text)
+    {
+        this.dictCategorySelected = text;
+        await dictRef.QueryAsync();
+    }
+
+    private async Task<QueryData<SysDict>> OnQueryAsync(QueryPageOptions options)
+    {
+        return await db.QueryAsync<SysDict>(options, x => x.Where(t => t.Category == dictCategorySelected));
+    }
+
+    private SysDict CreateItemCallback()
+    {
+        var dict = new SysDict();
+        dict.Category = dictCategorySelected ?? "";
+        return dict;
+    }
+
+    private Task OnAfterModifyAsync()
+    {
+        cache.Remove<SysDict>();
+        RefreshItems();
+        return Task.CompletedTask;
+    }
+
+    private void RefreshItems()
+    {
+        this.Items = db.Queryable<SysDict>().Select(t => t.Category).Distinct().ToList();
+        this.selectedItems = Items.Select(t => new SelectedItem() { Text = t, Value = t }).ToList();
+    }
+}

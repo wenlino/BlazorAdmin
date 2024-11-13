@@ -1,0 +1,11 @@
+﻿.layout-drawer-body {
+    padding: 1rem;
+}
+
+    .layout-drawer-body ::deep .groupbox {
+        margin-top: 1rem;
+    }
+
+    .layout-drawer-body ::deep .btn-info {
+        margin-bottom: 1rem;
+    }

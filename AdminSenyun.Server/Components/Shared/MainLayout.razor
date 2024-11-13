@@ -1,0 +1,130 @@
+﻿@using AdminSenyun.Server.Extensions
+@using AdminSenyun.Server.Models
+@inherits LayoutComponentBase
+@inject AdminSenyun.Server.Services.PluginService PluginService
+@inject IJSRuntime JSRuntime
+
+<BootstrapBlazorRoot>
+    <Layout ShowFooter=@webStyleSetting.ShowFooter
+            IsPage="true"
+            UseTabSet=@webStyleSetting.UseTabSet
+            IsFixedHeader=@webStyleSetting.IsFixedHeader
+            IsFixedFooter=@webStyleSetting.IsFixedFooter
+            Menus="MenuItems"
+            AdditionalAssemblies="PluginService.AssembliesPagesAll"
+            SideWidth=@webStyleSetting.SideWidth
+            ShowCollapseBar="true"
+            ShowGotoTop="true">
+        <Header>
+            @if (webStyleSetting.ShowRibbonTab)
+            {
+                <AdminSenyun.Server.Components.HeadMenu>
+                    <RightButtonsTemplate>
+                        <UserLogout WebStyleSetting="webStyleSetting"
+                                    OnWebStyleSettingChanged="OnWebStyleSettingChanged">
+                        </UserLogout>
+                        <ThemeProvider></ThemeProvider>
+                    </RightButtonsTemplate>
+                </AdminSenyun.Server.Components.HeadMenu>
+                <style>
+                    .layout {
+                        --bb-layout-header-height: 126px;
+                    }
+
+                        .layout.is-page .layout-header {
+                            display: block;
+                            padding: 0;
+                        }
+
+                    .layout-header .layout-header-bar {
+                        display: none !important;
+                    }
+
+                    .has-sidebar .layout-side {
+                        display: none !important;
+                    }
+                </style>
+            }
+            else
+            {
+                <span class="ms-3 flex-sm-fill d-none d-sm-block">@SubTitle</span>
+                <div class="flex-fill d-sm-none" />
+                <UserLogout WebStyleSetting="webStyleSetting"
+                            OnWebStyleSettingChanged="OnWebStyleSettingChanged">
+                </UserLogout>
+                <ThemeProvider></ThemeProvider>
+            }
+        </Header>
+        <Side />
+        <Main>
+            <ErrorLogger>
+                <Scroll Height="var(--main-height)">
+                    <AdminSenyun.Server.Components.MainPageContent />
+                </Scroll>
+            </ErrorLogger>
+        </Main>
+        <Footer>
+            <div class="text-center flex-fill">
+                <a class="page-layout-demo-footer-link" target="_blank">@Footer</a>
+            </div>
+        </Footer>
+        <NotFound>
+            <p>没有找到相关地址</p>
+        </NotFound>
+    </Layout>
+</BootstrapBlazorRoot>
+
+@code {
+    private IEnumerable<MenuItem>? MenuItems { get; set; }
+
+    [Inject][NotNull] private INavigation? NavigationsService { get; set; }
+
+    [Inject][NotNull] private IDict? DictsService { get; set; }
+
+    [Inject][NotNull] private IUser? UsersService { get; set; }
+
+    [Inject][NotNull] private IAdmin? Admin { get; set; }
+
+    [Inject, NotNull] private Blazored.LocalStorage.ILocalStorageService localStorage { get; set; }
+
+
+    private WebStyleSetting webStyleSetting { get; set; } = new();
+
+
+    private string? SubTitle { get; set; }
+
+    private string? Footer { get; set; }
+
+
+    private bool Lock { get; set; }
+
+    private int LockInterval { get; set; }
+
+    private Task OnWebStyleSettingChanged(WebStyleSetting webStyleSetting)
+    {
+        this.StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// OnInitialized 方法
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        var userName = Admin.UserName;
+
+        if (!string.IsNullOrEmpty(userName))
+        {
+            var user = UsersService.GetUserByUserName(userName);
+            MenuItems = NavigationsService.GetAllMenus(userName).ToMenus();
+        }
+
+        SubTitle = DictsService.GetWebSubTitle();
+        Footer = DictsService.GetWebFooter();
+
+        Lock = DictsService.GetAutoLockScreen();
+        LockInterval = Convert.ToInt32(DictsService.GetAutoLockScreenInterval());
+
+        webStyleSetting = await localStorage.GetItemAsync<WebStyleSetting>("WebStyleSetting") ?? new();
+    }
+}

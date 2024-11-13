@@ -1,0 +1,117 @@
+﻿@page "/sys/files"
+@using AdminSenyun.Core.Components
+
+
+@inherits AdminBase
+
+<PageTitle>文件管理 - 森云科技</PageTitle>
+
+<AdminTable TItem="SysFile"
+            EditDialogSize="Size.Large"
+            OnDeleteAsync="OnDeleteAsync"
+            OnQueryAsync="OnQueryAsync"
+            @ref="adminTable"
+            PageItems="20"
+            ExtendButtonColumnWidth="180">
+    <TableColumns>
+        <TableColumn @bind-Field=context.Name Searchable="true" Filterable="true">
+            <Template Context="value">
+                <a class="btn link-button link-primary" href="@value.Row.GetUrl()" target="_blank">
+                    @value.Row.GetFileName()
+                </a>
+            </Template>
+        </TableColumn>
+        <TableColumn FieldExpression="()=>context.Ext" Filterable=" true"></TableColumn>
+        <TableColumn FieldExpression="()=>context.SizeKb"></TableColumn>
+        <TableColumn FieldExpression="()=>context.CreateTime"></TableColumn>
+        <TableColumn FieldExpression="()=>context.CreateUserName"></TableColumn>
+    </TableColumns>
+    <TableToolbarTemplate>
+        <TableToolbarButton Text="上传文件" Icon="fas fa-upload" OnClick="FileUploadClick"></TableToolbarButton>
+        <TableToolbarButton TItem="SysFile" Text="预览"
+                            Icon="fas fa-book-open-reader"
+                            IsEnableWhenSelectedOneRow="true"
+                            OnClickCallback="ViewFile">
+        </TableToolbarButton>
+        <TableToolbarButton TItem="SysFile" Text="下载"
+                            Icon="fas fa-download"
+                            IsEnableWhenSelectedOneRow="true"
+                            OnClickCallback="DowmloadFile">
+        </TableToolbarButton>
+    </TableToolbarTemplate>
+    <EditTemplate>
+        <div class="row g-3">
+            <div class="col-12">
+                <BootstrapInput @bind-Value=context.Name></BootstrapInput>
+            </div>
+        </div>
+    </EditTemplate>
+    <RowButtonTemplate>
+        <TableCellButton IsShow=@context.IsShow()
+                         Icon="fas fa-book-open-reader"
+                         Text="预览"
+                         OnClick="t=> OnViewFileClick(context)">
+        </TableCellButton>
+        <TableCellButton IsShow=@(!context.IsShow())
+                         Icon="fas fa-download"
+                         Text="下载"
+                         OnClick="t=> DownloadClick(context)">
+        </TableCellButton>
+    </RowButtonTemplate>
+</AdminTable>
+
+@code {
+
+    [NotNull]
+    Core.Components.AdminTable<SysFile>? adminTable { get; set; }
+
+
+    private async Task<QueryData<SysFile>> OnQueryAsync(QueryPageOptions options)
+    {
+        return await base.QueryAsync<SysFile>(options, x => x.OrderByDescending(t => t.CreateTime));
+    }
+
+    async Task FileUploadClick()
+    {
+        await this.SysFileUpload(onDelete: t => Task.FromResult(true),
+        close: async () => await adminTable.QueryAsync());
+    }
+
+    async Task<bool> OnDeleteAsync(IEnumerable<SysFile> files)
+    {
+        try
+        {
+            foreach (var item in files)
+            {
+                var path = Path.Combine(this.GetSysFileRootPath(), item.Folder, item.GetSaveFileName());
+                if (File.Exists(path))
+                    File.Delete(path);
+                this.Db.Deleteable(item).ExecuteCommand();
+            }
+        }
+        catch { return false; }
+        return true;
+    }
+
+    async Task DownloadClick(SysFile file)
+    {
+        var path = Path.Combine(this.GetSysFileRootPath(), file.Folder, file.GetSaveFileName());
+        var bytes = File.ReadAllBytes(path);
+        await DownloadService.DownloadFromByteArrayAsync(file.GetFileName(), bytes);
+    }
+
+    async Task OnViewFileClick(SysFile file)
+    {
+        await ShowDialog(file.GetUrl());
+    }
+
+    private async Task ViewFile(IEnumerable<SysFile> sysFiles)
+    {
+        await OnViewFileClick(sysFiles.FirstOrDefault());
+    }
+
+    private async Task DowmloadFile(IEnumerable<SysFile> sysFiles)
+    {
+        await DownloadClick(sysFiles.FirstOrDefault());
+    }
+}

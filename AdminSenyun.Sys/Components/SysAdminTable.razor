@@ -1,0 +1,20 @@
+﻿@typeparam TItem
+
+<Table TItem="TItem" IsBordered="true" IsMultipleSelect="IsMultipleSelect" @ref="Instance"
+       IsPagination="IsPagination" PageItemsSource="PageItemsSource" IsFixedHeader="IsFixedHeader"
+       IsTree="IsTree" OnTreeExpand="OnTreeExpand!" TreeNodeConverter="TreeNodeConverter!"
+       ShowDefaultButtons="ShowDefaultButtons" ShowAdvancedSearch="ShowAdvancedSearch"
+       ShowEmpty="ShowEmpty" EmptyText="暂无数据" EmptyImage="images/empty.svg" SortString="@SortString"
+       OnQueryAsync="OnQueryAsync!" OnDeleteAsync="OnDeleteAsync!" OnSaveAsync="OnSaveAsync!"
+       ShowSkeleton="true" ShowLoading="ShowLoading" ShowSearch="ShowSearch"
+       ShowToolbar="ShowToolbar" ShowExtendButtons="ShowExtendButtons"
+       ShowAddButton="@AuthorizeButton("add")" ShowDeleteButton="@AuthorizeButton("del")" ShowEditButton="@AuthorizeButton("edit")"
+       ShowExtendEditButton=@AuthorizeButton("edit") ShowExtendDeleteButton=@AuthorizeButton("del")
+       ShowCardView="true" ShowColumnList="true" ExtendButtonColumnWidth="@ExtendButtonColumnWidth"
+       CustomerSearchModel="CustomerSearchModel" SelectedRows="SelectedRows" ModelEqualityComparer="ModelEqualityComparer!"
+       ShowExtendEditButtonCallback="ShowEditButtonCallback!" ShowExtendDeleteButtonCallback="ShowDeleteButtonCallback!"
+       OnAfterModifyAsync="OnAfterModifyAsync!" AutoGenerateColumns="AutoGenerateColumns"
+       TableToolbarTemplate="TableToolbarTemplate" TableColumns="TableColumns" EditTemplate="EditTemplate!"
+       CustomerSearchTemplate="CustomerSearchTemplate!" RowButtonTemplate="RowButtonTemplate!" PageItems="PageItems"
+       CreateItemCallback=CreateItemCallback>
+</Table>

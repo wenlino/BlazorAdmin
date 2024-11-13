@@ -1,0 +1,19 @@
+﻿@page "/Admin/Exceptions"
+
+<SysAdminTable TItem="AdminSenyun.Models.SysError" IsPagination="true" IsFixedHeader="false" ShowDefaultButtons="false" ShowExtendButtons="false">
+    <TableColumns>
+        <TableColumn @bind-Field="context.LogTime" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+        <TableColumn @bind-Field="context.ErrorPage" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+        <TableColumn @bind-Field="context.UserId" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+        <TableColumn @bind-Field="context.UserIp" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+        <TableColumn @bind-Field="context.ExceptionType" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+        <TableColumn @bind-Field="context.Message" Filterable="true" Searchable="true" Sortable="true" TextWrap="true"></TableColumn>
+        <TableColumn @bind-Field="context.Category" Filterable="true" Searchable="true" Sortable="true"></TableColumn>
+    </TableColumns>
+    <CustomerSearchTemplate>
+        @if (context is ErrorSearchModel searchModel)
+        {
+            <ErrorSearch @bind-Value="@searchModel"></ErrorSearch>
+        }
+    </CustomerSearchTemplate>
+</SysAdminTable>

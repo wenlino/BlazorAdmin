@@ -1,0 +1,94 @@
+﻿@inherits AdminBase
+@using System.Diagnostics.CodeAnalysis
+
+<ValidateForm Model="RepData">
+    <div class="row g-3">
+        <div class="col-12 col-sm-6">
+            <BootstrapInput @bind-Value=RepData.Name></BootstrapInput>
+
+        </div>
+        <div class="col-12 col-sm-6">
+            <BootstrapInput @bind-Value=RepData.DbName></BootstrapInput>
+        </div>
+        <div class="col-12">
+            <Textarea @bind-Value=RepData.Declare></Textarea>
+        </div>
+        <div class="col-12">
+            <Textarea @bind-Value=RepData.Sql></Textarea>
+        </div>
+    </div>
+</ValidateForm>
+
+<div style="margin:5px">数据展示</div>
+<div style="height:300px;margin:3px">
+    <Table TItem="DynamicObject" DynamicContext="DataTableDynamicContext" IsBordered></Table>
+</div>
+<div style="margin:5px">@Message</div>
+
+<div class="form-footer mt-3">
+
+    <Button OnClick="TestClick" Icon="fas fa-magnifying-glass">测试</Button>
+    <DialogCloseButton></DialogCloseButton>
+    <Button OnClick="EditSaveAsync" Icon="fa-solid fa-floppy-disk">保存</Button>
+</div>
+
+@code {
+    [CascadingParameter(Name = "BodyContext")]
+    public object BodyContext { get; set; }
+
+    public RepData RepData { get; set; }
+
+    [CascadingParameter]
+    [NotNull]
+    private Modal Dialog { get; set; }
+
+    private string Message { get; set; } = "";
+
+    private DataTableDynamicContext? DataTableDynamicContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        RepData = BodyContext as RepData;
+    }
+    public async void EditSaveAsync()
+    {
+        if (RepData.Id == 0)
+        {
+            Db.Insertable(RepData).ExecuteCommand();
+        }
+        else
+        {
+            Db.Updateable(RepData).ExecuteCommand();
+        }
+
+        await Dialog.Close();
+        await ToastService.Success("保存成功", $"{RepData.Name}:{RepData.DbName}");
+    }
+    private async void TestClick()
+    {
+        try
+        {
+            var db = GetSysSettingISqlSugar(RepData.DbName);
+            var dt = db.Ado.GetDataTable(RepData.Declare + "\r\n" + RepData.Sql);
+
+            var newdt = dt.Clone();
+            if (dt.Rows.Count > 50)
+            {
+                dt.Rows.Cast<System.Data.DataRow>().Take(50).ToList().ForEach(t => newdt.ImportRow(t));
+            }
+            else
+            {
+                dt.Rows.Cast<System.Data.DataRow>().ToList().ForEach(t => newdt.ImportRow(t));
+            }
+            DataTableDynamicContext = new DataTableDynamicContext(newdt);
+            Message = $"共计查找到 {dt.Rows.Count} 条数据，展示了 {newdt.Rows.Count} 条数据";
+
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await MsgError(ex.Message);
+        }
+    }
+}

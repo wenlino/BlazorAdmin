@@ -1,0 +1,150 @@
+﻿@page "/sys/setting"
+@inherits AdminBase
+
+<PageTitle>系统设置 - 森云科技</PageTitle>
+
+<AdminTable TItem="SysSetting" ClientTableName="@(nameof(SettingPage)+"Table")" ExtendButtonColumnWidth="175" PageItems="1000"
+            IsTree="true" TreeNodeConverter="TreeNodeConverter" FixedExtendButtonsColumn
+            EditButtonText="模型" OnSaveAsync="OnSaveAsync"
+            OnDeleteAsync="OnDeleteAsync">
+    <TableColumns>
+        <TableColumn @bind-Field="@context.ParentId" Visible=false IsVisibleWhenAdd="true" IsVisibleWhenEdit="true">
+            <EditTemplate Context="v">
+                <div class="col-12 col-sm-6">
+                    <SelectTree @bind-Value=v.ParentId Items="GetTreeItems(v).Result"></SelectTree>
+                </div>
+            </EditTemplate>
+        </TableColumn>
+        <TableColumn @bind-Field="@context.Name" Sortable="true" Filterable="true" Searchable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Title" Sortable="true" Filterable="true" Searchable="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Value" Sortable="true" Filterable="true" Searchable="true" IsVisibleWhenEdit="false" IsVisibleWhenAdd="false">
+            <Template Context="value">
+                @if (value.Row.IsHide)
+                {
+                    @("".PadLeft(value.Value.Length, '·'))
+                }
+                else
+                {
+                    @value.Value
+                }
+            </Template>
+        </TableColumn>
+        <TableColumn @bind-Field="@context.IsHide" Visible=false IsVisibleWhenAdd="true" IsVisibleWhenEdit="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Typ" Visible=false IsVisibleWhenAdd="true" IsVisibleWhenEdit="true"></TableColumn>
+        <TableColumn @bind-Field="@context.Items" Visible=false IsVisibleWhenAdd="true" IsVisibleWhenEdit="true">
+            <EditTemplate Context="v">
+                <div class="col-12">
+                    <Textarea @bind-Value=v.Items></Textarea>
+                </div>
+            </EditTemplate>
+        </TableColumn>
+        <TableColumn @bind-Field="@context.Remark" Sortable="true" Filterable="true" Searchable="true">
+            <EditTemplate Context="v">
+                <div class="col-12">
+                    <Textarea @bind-Value=v.Remark></Textarea>
+                </div>
+            </EditTemplate>
+        </TableColumn>
+    </TableColumns>
+    <RowButtonTemplate>
+        <TableCellButton IsShow=@(AuthorizeButton("val") && context.Typ!=0)
+                         Text="更改"
+                         Color="Color.Info"
+                         Icon="fas fa-pen"
+                         OnClick="()=>OnEditVal(context)">
+        </TableCellButton>
+    </RowButtonTemplate>
+</AdminTable>
+
+
+@code {
+    [Inject]
+    private ISysSetting sysSettingService { get; set; }
+
+    private async Task OnEditVal(IEnumerable<SysSetting> sysSetting)
+    {
+        if (sysSetting.Count() == 1)
+        {
+            await OnEditVal(sysSetting.First());
+        }
+        else
+        {
+            await MsgWarning("请选择一项");
+        }
+    }
+
+    private async Task OnEditVal(SysSetting sysSetting)
+    {
+        if (sysSetting.Typ == 0)
+            return;
+
+
+        await ShowDialog<SettingEditComponent>(sysSetting);
+    }
+
+    private async Task<List<TreeViewItem<long>>> GetTreeItems(SysSetting v)
+    {
+        try
+        {
+            var d = this.Db.Queryable<SysSetting>().Where(t => t.Typ == SettingTyp.None).ToList();
+            var ret = BuildTreeItems(d, nameof(AdminSenyun.Models.SysSetting.Title));
+            return [new TreeViewItem<long>(0) { Text = "首层", Items = ret, IsExpand = true }];
+        }
+        catch
+        {
+            return [new TreeViewItem<long>(0) { Text = "首层" }];
+        }
+    }
+
+    private async Task<IEnumerable<TableTreeNode<SysSetting>>> TreeNodeConverter(IEnumerable<SysSetting> items)
+    {
+        // 构造树状数据结构
+        var ret = BuildTableTreeNodes(items);
+        if (ret.Count() == 0)
+            return items.Select(t => new TableTreeNode<SysSetting>(t));
+        else
+            return ret;
+    }
+
+    private async Task<bool> OnSaveAsync(SysSetting sysSetting, ItemChangedType type)
+    {
+        //检查名称是否重复
+        var result = this.Db.Queryable<SysSetting>().Where(t => t.Id != sysSetting.Id).Where(t => t.Name == sysSetting.Name).Any();
+
+
+        //判断级别是否是自己子集或者本身
+
+        if (Db.Queryable<SysSetting>()
+         .Where(t => t.Id == sysSetting.ParentId)
+         .ToChildList(t => t.ParentId, sysSetting.Id).Any())
+        {
+            if (type == ItemChangedType.Update)
+            {
+                await this.MsgError("父层不能是自行本身或者是子项");
+                return false;
+            }
+        }
+
+        if (result)
+        {
+            await this.MsgError("已经存在不能新增");
+            return false;
+        }
+        return sysSettingService.SaveSetting(sysSetting, type == ItemChangedType.Add);
+    }
+
+    private async Task<bool> OnDeleteAsync(IEnumerable<SysSetting> items)
+    {
+        var ids = items.Select(t => t.Id);
+        var result = Db.Queryable<SysSetting>().Where(t => ids.Contains(t.ParentId)).Any();
+        if (result)
+        {
+            await this.MsgError("还存在子项不允许删除，若删除请先将子项清理！");
+            return false;
+        }
+        else
+        {
+            return Db.Deleteable(items.ToList()).ExecuteCommand() > 0;
+        }
+    }
+}

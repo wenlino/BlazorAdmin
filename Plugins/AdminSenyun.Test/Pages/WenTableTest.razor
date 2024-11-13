@@ -1,0 +1,92 @@
+﻿@page "/test/wentable"
+@using AdminSenyun.Data.Core
+@using AdminSenyun.Models
+@using AdminSenyun.Test.Entity.Wcc
+@using SqlSugar
+<div style="height:100%">
+    <div style="height:50%">
+        <WenTable TItem="PROADMIN"
+                  IsDeleteButton="true"
+                  IsRadio="true"
+                  IsExport=false
+                  IsStriped=true
+                  IsBordered="true"
+                  OnQueryAsync="QueryAsync"
+                  SqlSugarClient="@(sysSetting.GetSqlSugarClient("Wcc"))"
+                  ColumnPersistenceStoreName="SysSetting_Test">
+            <TableColumns>
+                <TableColumn @bind-Field=context.NAME></TableColumn>
+                <TableColumn @bind-Field=context.TEXT_LONG></TableColumn>
+                <TableColumn @bind-Field=context.INFO1></TableColumn>
+                <TableColumn @bind-Field=context.COMM></TableColumn>
+            </TableColumns>
+        </WenTable>
+    </div>
+    <div style="height:50%">
+        <WenTable TItem="SysSetting"
+                  IsBordered="true"
+                  IsMultipleSelect="true"
+                  IsPagination="true"
+                  IsFixedHeader="true"
+                  ShowToolbar="true"
+                  ShowEmpty="true"
+                  ShowLoading="true"
+                  ShowSearch="true"
+                  ShowAdvancedSearch="true"
+                  ShowDefaultButtons="true"
+                  ShowExtendButtons="true"
+                  FixedExtendButtonsColumn="true"
+                  ClickToSelect="true"
+                  ShowColumnList="true"
+                  IsFixedFooter="true"
+                  ShowSkeleton="true"
+                  ShowCardView="true"
+                  ShowLineNo="true"
+                  AllowDragColumn="true"
+                  AllowResizing="true">
+            <TableColumns>
+                <TableColumn @bind-Field=context.Name Searchable="true"></TableColumn>
+                <TableColumn @bind-Field=context.Value></TableColumn>
+                <TableColumn @bind-Field=context.Title></TableColumn>
+                <TableColumn @bind-Field=context.CreateTime></TableColumn>
+                <TableColumn @bind-Field=context.CreateUserName></TableColumn>
+            </TableColumns>
+        </WenTable>
+    </div>
+</div>
+
+<style>
+    .table-fixed-column .table {
+        table-layout: fixed;
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+</style>
+
+@code {
+    [Inject]
+    private ISysSetting sysSetting { get; set; }
+
+    private ISqlSugarClient sqlSugarClient => this.sysSetting.GetSqlSugarClient("Wcc");
+
+    Task<QueryData<PROADMIN>> QueryAsync(QueryPageOptions option)
+    {
+        int count = 0;
+        var filter = option.ToFilter();
+        var items = sqlSugarClient.Queryable<PROADMIN>()
+                      .WhereIF(filter.HasFilters(), filter.GetFilterLambda<PROADMIN>())
+                      .OrderByPropertyNameIF(option.SortOrder != SortOrder.Unset, option.SortName,
+                      option.SortOrder == SortOrder.Asc ? OrderByType.Asc : OrderByType.Desc)
+                      .ToPageList(option.PageIndex, option.PageItems, ref count).ToList().Take(2);
+        var data = new QueryData<PROADMIN>
+            {
+                IsSorted = option.SortOrder != SortOrder.Unset,
+                IsFiltered = option.Filters.Any(),
+                IsAdvanceSearch = option.AdvanceSearches.Any(),
+                IsSearch = option.Searches.Any() || option.CustomerSearches.Any(),
+                Items = items,
+                TotalCount = Convert.ToInt32(count)
+            };
+        return Task.FromResult(data);
+    }
+}

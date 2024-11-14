@@ -20,9 +20,7 @@
 | AdminSenyun.Server | 服务启动              | Server  |
 | ProPublish         | 系统发布工具            | Publish |
 
-#### 
-
-#### #### 功能选项
+#### 功能选项
 
 系统控件基于 Bootstrap Blazor 。
 
@@ -107,9 +105,7 @@
 |      | 预览   | ✅   |
 |      | 下载   | ✅   |
 
-##### 用户管理
-
-    用户管理
+##### 
 
 ![](Img/01.gif) 
 
@@ -159,7 +155,7 @@ public class DictAttribute(string category) : Attribute
 </Table>
 ```
 
-##### 重写控件（WenTable）
+##### 表格控件（WenTable）
 
     服务器列样式存储样式 只需要添加参数 ColumnPersistenceStoreName
 
@@ -167,31 +163,23 @@ public class DictAttribute(string category) : Attribute
 
     重写数据库连接服务： 当类继承 IEntityBase 后，自动 创建事件倒序
 
-
-
-##### （WenSelect）
+##### 字典下拉选项（WenSelect）
 
     设置DictCategory  自定读取设置
 
 ![](Img/08.png)
 
-
-
-#### 组件(WenListGroup)
+#### 样式列表组件 (WenListGroup)
 
 增加 QueryAsync委托
 
-
-
-#### 组件（AdminSysFile）
+#### 文件管理服务（AdminSysFile）
 
     系统文件包含上传 下载预览等功能
 
 ![](Img/10.png)
 
 通过 OnQueryAsync 回调 返回 文件 ID 数组
-
-
 
 #### 插件功能
 
@@ -200,8 +188,6 @@ public class DictAttribute(string category) : Attribute
     DEBUG模式  \bin\Debug 下文件
 
   使用时候，只需要 Plugins创建项目
-
-
 
 #### 发布工具 （ProPublish）
 
